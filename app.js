@@ -1,4 +1,4 @@
-// Default Data Structure - Prioritized for CNH, MP Installments, and Emergency Fund
+// Refactored Data Structure supporting Dynamic Debts, Savings, and Grocery list
 const DEFAULT_DATA = {
     costs: {
         rent: 550,
@@ -11,9 +11,9 @@ const DEFAULT_DATA = {
         workDaysPerWeek: 6
     },
     debts: [
-        { id: 'debt-mp', title: 'Empréstimo Mercado Pago (Parcelado)', target: 800, paid: 0 },
+        { id: 'debt-mp', title: 'Empréstimo Mercado Pago', target: 800, paid: 0 },
         { id: 'debt-cc', title: 'Fatura Cartão de Crédito', target: 1200, paid: 0 },
-        { id: 'debt-client', title: 'Reposição Cliente Digital (Aportes Graduais)', target: 3500, paid: 0 }
+        { id: 'debt-client', title: 'Reposição Cliente Digital', target: 3500, paid: 0 }
     ],
     savingsGoals: [
         { id: 'goal-cnh', title: 'Habilitação B (Carro)', target: 2500, saved: 0 },
@@ -28,12 +28,17 @@ const DEFAULT_DATA = {
         { id: 5, text: 'Kit básico de produtos de limpeza', category: 'cleaning', price: 50, completed: false, txId: null },
         { id: 6, text: 'Escova de dentes e itens pessoais', category: 'personal', price: 35, completed: false, txId: null }
     ],
+    groceryList: [
+        { id: 1, text: 'Pão de forma', completed: false },
+        { id: 2, text: 'Arroz e Feijão', completed: false },
+        { id: 3, text: 'Frango / Carne para os meninos', completed: false }
+    ],
     transactions: [
         { id: 1, date: '2026-06-08', type: 'income', amount: 160, source: 'moto', category: 'faturamento', notes: 'Primeiro dia de rodagem' }
     ],
     kidsWeek: false,
     activeTab: 'tab-dashboard',
-    estimatedMonthlyDigital: 1500 // User editable for time projection
+    estimatedMonthlyDigital: 1500
 };
 
 let appState = {};
@@ -52,6 +57,7 @@ function loadState() {
                 debts: appState.debts || DEFAULT_DATA.debts,
                 savingsGoals: appState.savingsGoals || DEFAULT_DATA.savingsGoals,
                 checklist: appState.checklist || DEFAULT_DATA.checklist,
+                groceryList: appState.groceryList || DEFAULT_DATA.groceryList,
                 transactions: appState.transactions || DEFAULT_DATA.transactions,
                 estimatedMonthlyDigital: appState.estimatedMonthlyDigital !== undefined ? appState.estimatedMonthlyDigital : DEFAULT_DATA.estimatedMonthlyDigital
             };
@@ -61,6 +67,32 @@ function loadState() {
         }
     } else {
         appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    }
+    
+    // Auto-calculate if this week is kids week on load
+    autoCalculateKidsWeek();
+}
+
+// Auto-calculate kids week starting from base Friday 2026-06-12
+function autoCalculateKidsWeek() {
+    const baseFriday = new Date('2026-06-12T19:00:00');
+    const today = new Date();
+    
+    // Find the Friday of the current week (Mon-Sun)
+    const day = today.getDay();
+    const diffToFriday = 5 - day;
+    const currentFriday = new Date(today);
+    currentFriday.setDate(today.getDate() + diffToFriday);
+    currentFriday.setHours(19, 0, 0, 0);
+    
+    const timeDiff = currentFriday.getTime() - baseFriday.getTime();
+    const diffDays = Math.round(timeDiff / (1000 * 3600 * 24));
+    
+    // Alternate every 14 days
+    if (diffDays % 14 === 0) {
+        appState.kidsWeek = true;
+    } else {
+        appState.kidsWeek = false;
     }
 }
 
@@ -108,7 +140,13 @@ function calculateMetrics() {
     const totalSavedCNH = appState.savingsGoals.find(g => g.id === 'goal-cnh')?.saved || 0;
     const totalSavedReserve = appState.savingsGoals.find(g => g.id === 'goal-reserve')?.saved || 0;
     const totalSavedApartment = appState.savingsGoals.find(g => g.id === 'goal-apartment')?.saved || 0;
-    const totalInSavings = totalSavedCNH + totalSavedReserve + totalSavedApartment;
+    
+    // Any custom goals added dynamically
+    const dynamicGoalsSaved = appState.savingsGoals
+        .filter(g => !['goal-cnh', 'goal-reserve', 'goal-apartment'].includes(g.id))
+        .reduce((sum, g) => sum + g.saved, 0);
+        
+    const totalInSavings = totalSavedCNH + totalSavedReserve + totalSavedApartment + dynamicGoalsSaved;
     
     // Available digital balance is digital ledger minus protected savings
     const availableDigitalBalance = balanceDigital - totalInSavings;
@@ -141,9 +179,6 @@ function calculateMetrics() {
         balanceDigital,
         availableDigitalBalance,
         totalInSavings,
-        totalSavedCNH,
-        totalSavedReserve,
-        totalSavedApartment,
         totalDebtsTarget,
         totalDebtsPaid,
         remainingDebts,
@@ -156,22 +191,20 @@ function calculateMetrics() {
     };
 }
 
-// Calculate Overall Rebirth Score & Time Projection
+// Calculate Rebirth Score, Time Projection & Category Expenses (Financial X-Ray)
 function calculateGamification(metrics) {
-    // Total financial burden (All debts + Savings targets + Shopping list)
-    const totalTarget = metrics.totalDebtsTarget + 2500 + 6000 + 4000 + metrics.totalChecklist;
-    const totalAccumulated = metrics.totalDebtsPaid + metrics.totalInSavings + metrics.spentChecklist;
+    const totalTarget = metrics.totalDebtsTarget + appState.savingsGoals.reduce((sum, g) => sum + g.target, 0) + metrics.totalChecklist;
+    const totalAccumulated = metrics.totalDebtsPaid + appState.savingsGoals.reduce((sum, g) => sum + g.saved, 0) + metrics.spentChecklist;
     
     const overallProgressPercent = totalTarget > 0 ? (totalAccumulated / totalTarget) * 100 : 100;
     
-    // Define Rank and motivational phrase
     let rank = "Guerreiro do Asfalto 🏍️";
-    let motto = "O início é o mais difícil. Foque em pagar o Mercado Pago e acelerar na moto!";
+    let motto = "Inicie a limpeza de passivos. Foque em pagar o Mercado Pago e acelerar na moto!";
     let rankClass = "rank-survivor";
     
     if (overallProgressPercent >= 20 && overallProgressPercent < 50) {
         rank = "Piloto Em Transição 🚗";
-        motto = "Habilitação na mira! O digital está começando a aliviar seu passado.";
+        motto = "Habilitação na mira! O digital está limpando seu passado e te tirando das duas rodas.";
         rankClass = "rank-transition";
     } else if (overallProgressPercent >= 50 && overallProgressPercent < 80) {
         rank = "Base Sólida 🏢";
@@ -179,7 +212,7 @@ function calculateGamification(metrics) {
         rankClass = "rank-solid";
     } else if (overallProgressPercent >= 80 && overallProgressPercent < 100) {
         rank = "Próximo ao Reencontro 🏠";
-        motto = "A carteira na mão, reservas prontas. Falta muito pouco para o apê!";
+        motto = "Habilitação ok, reservas prontas. Falta muito pouco para o apê!";
         rankClass = "rank-home";
     } else if (overallProgressPercent === 100) {
         rank = "Líder do Lar 👑";
@@ -187,16 +220,46 @@ function calculateGamification(metrics) {
         rankClass = "rank-king";
     }
     
-    // Calculate remaining funds needed
     const remainingToGoal = totalTarget - totalAccumulated;
-    
-    // Time projection based on estimated monthly digital income
     const monthlyDigital = appState.estimatedMonthlyDigital || 1500;
-    // Estimated monthly moto surplus (e.g. if he makes more than target, but let's assume R$ 200/month surplus to be conservative)
     const estimatedMotoSurplusMonthly = 200; 
     const totalMonthlyEarningPotential = monthlyDigital + estimatedMotoSurplusMonthly;
-    
     const monthsRemaining = totalMonthlyEarningPotential > 0 ? (remainingToGoal / totalMonthlyEarningPotential) : 99;
+    
+    // Financial X-Ray logic (Expense breakdown for current month)
+    const currentMonthStr = new Date().toISOString().substring(0, 7);
+    const monthlyExpenses = appState.transactions
+        .filter(tx => tx.date.startsWith(currentMonthStr) && tx.type === 'expense');
+        
+    const totalMonthlyOutflow = monthlyExpenses.reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+    
+    // Group expenses by category
+    const categoryTotals = {};
+    monthlyExpenses.forEach(tx => {
+        categoryTotals[tx.category] = (categoryTotals[tx.category] || 0) + parseFloat(tx.amount);
+    });
+    
+    // General TDAH-friendly tips based on highest costs
+    let xrayTip = "Dica: Mantenha um lanche rápido na mochila para economizar até R$ 120/mês de alimentação na rua.";
+    let highestCat = "";
+    let maxCost = 0;
+    
+    Object.keys(categoryTotals).forEach(cat => {
+        if (categoryTotals[cat] > maxCost) {
+            maxCost = categoryTotals[cat];
+            highestCat = cat;
+        }
+    });
+    
+    if (highestCat === 'gasolina') {
+        xrayTip = "Dica: Planeje rotas de pico mais curtas. Menos rodagem à toa = mais gasolina economizada.";
+    } else if (highestCat === 'alimentacao') {
+        xrayTip = "Dica: Economize no almoço fazendo marmita no quarto. Alimentação na rua consome seu Saldo Moto rápido!";
+    } else if (highestCat === 'lazer_esposa') {
+        xrayTip = "Dica: Prefira encontros caseiros no quarto ou passeios gratuitos. Mantenha a verba de encontros sob controle.";
+    } else if (highestCat === 'outros') {
+        xrayTip = "Dica: Cuidado com pequenas compras diárias. No final do mês elas viram uma grande despesa.";
+    }
     
     return {
         overallProgressPercent,
@@ -204,11 +267,14 @@ function calculateGamification(metrics) {
         motto,
         rankClass,
         remainingToGoal,
-        monthsRemaining
+        monthsRemaining,
+        categoryTotals,
+        totalMonthlyOutflow,
+        xrayTip
     };
 }
 
-// Determine current phase based on CNH, MP, and Apartment sequence
+// Determine current active phase
 function determinePhase(metrics) {
     const mpDebt = appState.debts.find(d => d.id === 'debt-mp');
     const mpDebtCleared = mpDebt ? mpDebt.paid >= mpDebt.target : true;
@@ -229,7 +295,7 @@ function determinePhase(metrics) {
         return { 
             phaseNum: 1, 
             title: 'Fase 1: Estabilização e Mercado Pago', 
-            description: 'Foco em pagar a moto/quarto e quitar a parcela do Mercado Pago. A cliente de R$ 3.5k pode ser amortizada gradualmente.',
+            description: 'Foco em pagar a moto/quarto na rua e quitar a parcela do Mercado Pago. A cliente de R$ 3.5k é aportada aos poucos.',
             progressLabel: 'Quitação Mercado Pago',
             progressPercent: mpDebt ? (mpDebt.paid / mpDebt.target) * 100 : 100
         };
@@ -237,15 +303,15 @@ function determinePhase(metrics) {
         return { 
             phaseNum: 2, 
             title: 'Fase 2: Mobilidade e CNH B', 
-            description: 'Mercado Pago quitado! O excedente do Digital vai 100% para os R$ 2.500,00 da Habilitação B de carro (prioridade máxima).',
+            description: 'Mercado Pago quitado! O excedente do Digital vai 100% para os R$ 2.500,00 da Habilitação B (carro - prioridade máxima).',
             progressLabel: 'Poupança CNH B',
             progressPercent: cnhGoal ? (cnhGoal.saved / cnhGoal.target) * 100 : 100
         };
     } else if (cnhSaved && !ccDebtCleared) {
         return {
             phaseNum: 2.5,
-            title: 'Fase 2.5: Limpeza de Cartão de Crédito',
-            description: 'CNH B garantida! Agora limpando a fatura do cartão de crédito para restaurar crédito financeiro.',
+            title: 'Fase 2.5: Ajuste de Cartão de Crédito',
+            description: 'CNH B garantida! Agora limpando a fatura do cartão de crédito para reaver crédito financeiro.',
             progressLabel: 'Quitação Cartão de Crédito',
             progressPercent: ccDebt ? (ccDebt.paid / ccDebt.target) * 100 : 100
         };
@@ -253,7 +319,7 @@ function determinePhase(metrics) {
         return { 
             phaseNum: 3, 
             title: 'Fase 3: Reserva de Emergência do Apê', 
-            description: 'Chega de dívidas básicas! Criando a reserva de segurança de R$ 6.000,00 para sustentar o apartamento sem passar aperto.',
+            description: 'Criando a reserva de segurança de R$ 6.000,00 para sustentar o apartamento por meses sem passar aperto.',
             progressLabel: 'Reserva de Emergência',
             progressPercent: reserveGoal ? (reserveGoal.saved / reserveGoal.target) * 100 : 100
         };
@@ -316,7 +382,6 @@ function renderActiveTab(tabId) {
     const phase = determinePhase(metrics);
     const gami = calculateGamification(metrics);
     
-    // Update global widgets
     updateHeaderWidgets(metrics);
     
     switch (tabId) {
@@ -360,7 +425,6 @@ function renderDashboard(metrics, phase, gami) {
     balMotoEl.textContent = formatBRL(metrics.balanceMoto);
     balDigitalEl.textContent = formatBRL(metrics.availableDigitalBalance);
     
-    // Color coding for balances
     if (metrics.balanceMoto < 0) {
         balMotoEl.style.color = 'var(--accent-danger)';
     } else if (metrics.balanceMoto > 100) {
@@ -386,7 +450,6 @@ function renderDashboard(metrics, phase, gami) {
     document.getElementById('dash-rebirth-bar-label').textContent = `${gami.overallProgressPercent.toFixed(0)}% Concluído`;
     document.getElementById('dash-rebirth-progress-bar').style.width = `${Math.min(100, gami.overallProgressPercent)}%`;
     
-    // Apply rank styling
     const rankWidget = document.getElementById('dash-rebirth-card');
     rankWidget.className = `glass-card ${gami.rankClass}`;
     
@@ -429,12 +492,18 @@ function renderDashboard(metrics, phase, gami) {
     document.getElementById('dash-debt-progress-bar').style.width = `${progressDebtPercent}%`;
     document.getElementById('dash-debt-progress-label').textContent = `${progressDebtPercent.toFixed(0)}% (${formatBRL(metrics.totalDebtsPaid)} de ${formatBRL(metrics.totalDebtsTarget)})`;
     
-    const totalSavingsGoal = 2500 + 6000 + 4000;
-    const progressSavingsPercent = (metrics.totalInSavings / totalSavingsGoal) * 100;
+    const totalSavingsGoal = appState.savingsGoals.reduce((sum, g) => sum + g.target, 0);
+    const progressSavingsPercent = totalSavingsGoal > 0 ? (metrics.totalInSavings / totalSavingsGoal) * 100 : 100;
     document.getElementById('dash-savings-progress-bar').style.width = `${progressSavingsPercent}%`;
     document.getElementById('dash-savings-progress-label').textContent = `${progressSavingsPercent.toFixed(0)}% (${formatBRL(metrics.totalInSavings)} de ${formatBRL(totalSavingsGoal)})`;
     
-    // 7. Recent Transactions
+    // 7. Render financial X-Ray (Raio-X de Gastos)
+    renderXrayWidget(gami);
+    
+    // 8. Render Next Kids Week Info
+    renderKidsScheduleWidget();
+    
+    // 9. Recent Transactions
     const tbody = document.getElementById('dash-recent-earnings-body');
     tbody.innerHTML = '';
     
@@ -461,6 +530,110 @@ function renderDashboard(metrics, phase, gami) {
             `;
             tbody.appendChild(tr);
         });
+    }
+}
+
+// Render dynamic X-Ray content
+function renderXrayWidget(gami) {
+    const listContainer = document.getElementById('dash-xray-list');
+    if (!listContainer) return;
+    
+    listContainer.innerHTML = '';
+    
+    const categoryLabels = {
+        gasolina: 'Gasolina (Moto)',
+        alimentacao: 'Alimentação na Rua',
+        aluguel_moto: 'Aluguel da Moto',
+        aluguel_quarto: 'Aluguel do Quarto',
+        higiene_limpeza: 'Higiene & Limpeza',
+        seguro: 'Seguro Acidentes',
+        academia: 'Academia',
+        lazer_esposa: 'Encontros Esposa',
+        divida: 'Amortização de Dívidas',
+        quarto_item: 'Compras do Quarto',
+        outros: 'Outros Gastos'
+    };
+    
+    const sortedCats = Object.keys(gami.categoryTotals)
+        .sort((a, b) => gami.categoryTotals[b] - gami.categoryTotals[a]);
+        
+    if (sortedCats.length === 0) {
+        listContainer.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1rem;">Nenhum gasto lançado este mês. Lance saídas no Lançamento Rápido!</div>`;
+    } else {
+        sortedCats.forEach(cat => {
+            const cost = gami.categoryTotals[cat];
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.style.borderBottom = '1px solid var(--border-glass)';
+            div.style.paddingBottom = '0.35rem';
+            div.style.fontSize = '0.85rem';
+            div.innerHTML = `
+                <span style="color: var(--text-secondary);">${categoryLabels[cat] || cat}</span>
+                <strong style="color: var(--accent-danger);">${formatBRL(cost)}</strong>
+            `;
+            listContainer.appendChild(div);
+        });
+    }
+    
+    document.getElementById('dash-xray-outflow').textContent = formatBRL(gami.totalMonthlyOutflow);
+    document.getElementById('dash-xray-tip').textContent = gami.xrayTip;
+}
+
+// Render Next Kids Weekend Info & Prep Alert
+function renderKidsScheduleWidget() {
+    const baseFriday = new Date('2026-06-12T19:00:00');
+    const today = new Date();
+    
+    const listEl = document.getElementById('dash-kids-dates-list');
+    if (!listEl) return;
+    
+    listEl.innerHTML = '';
+    
+    // Find next 3 weekends
+    let count = 0;
+    let checkDate = new Date(baseFriday);
+    
+    // If today is past the current weekend, start checking from the next one
+    while (count < 3) {
+        // Create end date (Sunday at 18:00)
+        let endSunday = new Date(checkDate);
+        endSunday.setDate(checkDate.getDate() + 2);
+        endSunday.setHours(18, 0, 0, 0);
+        
+        if (endSunday.getTime() >= today.getTime()) {
+            const dateStrStart = checkDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            const dateStrEnd = endSunday.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            
+            const isCurrent = appState.kidsWeek && count === 0 && (today.getTime() >= checkDate.getTime() - 4 * 86400000); // Mon-Sun of kids week
+            
+            const li = document.createElement('div');
+            li.style.display = 'flex';
+            li.style.justifyContent = 'space-between';
+            li.style.fontSize = '0.85rem';
+            li.style.padding = '0.4rem 0.5rem';
+            li.style.borderRadius = 'var(--radius-sm)';
+            
+            if (isCurrent) {
+                li.style.background = 'hsla(205, 90%, 55%, 0.15)';
+                li.style.borderLeft = '3px solid var(--accent-primary)';
+                li.innerHTML = `
+                    <strong style="color: var(--accent-primary);">Fim de Semana (${dateStrStart} - ${dateStrEnd})</strong>
+                    <span style="font-weight:700; color: var(--accent-primary); text-transform:uppercase; font-size:0.7rem;">Esta Semana!</span>
+                `;
+            } else {
+                li.innerHTML = `
+                    <span style="color: var(--text-secondary);">Fim de Semana (${dateStrStart} - ${dateStrEnd})</span>
+                    <span style="color: var(--text-muted);">Confirmado</span>
+                `;
+            }
+            
+            listEl.appendChild(li);
+            count++;
+        }
+        
+        // Add 14 days
+        checkDate.setDate(checkDate.getDate() + 14);
     }
 }
 
@@ -512,6 +685,9 @@ function renderFinances(metrics) {
             <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
                 <input type="number" placeholder="Valor p/ somar" class="input-pay-debt" id="pay-input-${debt.id}" style="width: 120px; padding: 0.35rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-main); color: white; outline: none; font-size: 0.85rem;">
                 <button class="btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" onclick="addPaymentToDebt('${debt.id}')">Quitar</button>
+                <button class="btn-icon" style="width: 28px; height: 28px; background:transparent; border-color:transparent;" onclick="deleteDebtItem('${debt.id}')">
+                    <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--accent-danger)"></i>
+                </button>
             </div>
         `;
         debtList.appendChild(debtDiv);
@@ -540,8 +716,11 @@ function renderFinances(metrics) {
                 </div>
                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items:center;">
                     <span style="font-size:0.75rem; color:var(--text-muted);">Deixar guardado:</span>
-                    <input type="number" placeholder="Valor p/ guardar" id="save-input-${goal.id}" style="width: 120px; padding: 0.35rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-main); color: white; outline: none; font-size: 0.85rem;">
+                    <input type="number" placeholder="Valor" id="save-input-${goal.id}" style="width: 90px; padding: 0.35rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-main); color: white; outline: none; font-size: 0.85rem;">
                     <button class="btn-success" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" onclick="depositToSavings('${goal.id}')">Guardar</button>
+                    <button class="btn-icon" style="width: 28px; height: 28px; background:transparent; border-color:transparent;" onclick="deleteSavingsItem('${goal.id}')">
+                        <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--accent-danger)"></i>
+                    </button>
                 </div>
             `;
             savingsContainer.appendChild(goalDiv);
@@ -582,69 +761,21 @@ function renderFinances(metrics) {
     }
 }
 
-// Global hook to pay off debts
-window.addPaymentToDebt = function(debtId) {
-    const inputEl = document.getElementById(`pay-input-${debtId}`);
-    const payVal = parseFloat(inputEl.value);
-    
-    if (isNaN(payVal) || payVal <= 0) return;
-    
-    const debt = appState.debts.find(d => d.id === debtId);
-    if (debt) {
-        const newTx = {
-            id: Date.now(),
-            date: new Date().toISOString().substring(0, 10),
-            type: 'expense',
-            amount: payVal,
-            source: 'digital',
-            category: 'divida',
-            notes: `Amortização: ${debt.title}`
-        };
-        
-        debt.paid = Math.min(debt.target, debt.paid + payVal);
-        appState.transactions.push(newTx);
-        
+// Dynamic Add / Delete Debts and Savings Targets
+window.deleteDebtItem = function(id) {
+    if (confirm('Tem certeza que deseja excluir esta dívida?')) {
+        appState.debts = appState.debts.filter(d => d.id !== id);
         saveState();
         renderActiveTab('tab-finances');
-        inputEl.value = '';
-        alert('Pagamento registrado na reserva digital e abatido da dívida!');
     }
 };
 
-// Global hook to assign money to savings goals (cnh / emergency / apartment)
-window.depositToSavings = function(goalId) {
-    const inputEl = document.getElementById(`save-input-${goalId}`);
-    const saveVal = parseFloat(inputEl.value);
-    
-    if (isNaN(saveVal) || saveVal <= 0) return;
-    
-    const metrics = calculateMetrics();
-    if (metrics.availableDigitalBalance < saveVal) {
-        alert(`Saldo Digital disponível insuficiente (${formatBRL(metrics.availableDigitalBalance)}). Deposite faturamento digital primeiro!`);
-        return;
-    }
-    
-    const goal = appState.savingsGoals.find(g => g.id === goalId);
-    if (goal) {
-        goal.saved = Math.min(goal.target, goal.saved + saveVal);
+window.deleteSavingsItem = function(id) {
+    if (confirm('Tem certeza que deseja excluir esta meta de poupança?')) {
+        appState.savingsGoals = appState.savingsGoals.filter(g => g.id !== id);
         saveState();
         renderActiveTab('tab-finances');
-        inputEl.value = '';
-        alert(`R$ ${saveVal.toFixed(2)} guardados com sucesso na meta: ${goal.title}!`);
     }
-};
-
-// Global hook to delete transaction
-window.deleteTransaction = function(txId) {
-    const linkedItem = appState.checklist.find(item => item.txId === txId);
-    if (linkedItem) {
-        linkedItem.completed = false;
-        linkedItem.txId = null;
-    }
-    
-    appState.transactions = appState.transactions.filter(tx => tx.id !== txId);
-    saveState();
-    renderActiveTab('tab-finances');
 };
 
 // --- RENDER ROUTINE/SCHEDULE TAB ---
@@ -768,8 +899,9 @@ function getBlocksForDay(dayKey, hasKids) {
     return [];
 }
 
-// --- RENDER SHOPPING CHECKLIST ---
+// --- RENDER SHOPPING & GROCERY CHECKLISTS ---
 function renderChecklist(metrics) {
+    // Column 1: Room setup
     document.getElementById('checklist-total-value').textContent = formatBRL(metrics.totalChecklist);
     document.getElementById('checklist-spent-value').textContent = formatBRL(metrics.spentChecklist);
     document.getElementById('checklist-remaining-value').textContent = formatBRL(metrics.remainingChecklist);
@@ -812,12 +944,69 @@ function renderChecklist(metrics) {
     
     Object.keys(categories).forEach(cat => {
         if (categories[cat].el.children.length === 0) {
-            categories[cat].el.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1rem;">Nenhum item pendente nesta categoria.</div>`;
+            categories[cat].el.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1rem;">Nenhum item pendente.</div>`;
         }
     });
+    
+    // Column 2: Grocery quick list
+    renderGroceryListWidget();
 }
 
-// Global hooks for checklist interactions
+// Render dynamic grocery list
+function renderGroceryListWidget() {
+    const listEl = document.getElementById('grocery-items-container');
+    if (!listEl) return;
+    
+    listEl.innerHTML = '';
+    
+    appState.groceryList.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = `checklist-item ${item.completed ? 'completed' : ''}`;
+        itemDiv.innerHTML = `
+            <div class="checklist-left">
+                <label class="checklist-checkbox-wrapper">
+                    <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="toggleGroceryItem(${item.id})">
+                    <span class="checkmark"></span>
+                </label>
+                <span class="checklist-text">${item.text}</span>
+            </div>
+            <div class="checklist-right">
+                <button class="btn-icon" style="width: 28px; height: 28px;" onclick="deleteGroceryItem(${item.id})">
+                    <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--accent-danger)"></i>
+                </button>
+            </div>
+        `;
+        listEl.appendChild(itemDiv);
+    });
+    
+    if (appState.groceryList.length === 0) {
+        listEl.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 1.5rem;">Lista vazia. Adicione itens para a sua ida ao mercado!</div>`;
+    }
+}
+
+// Global hooks for grocery checklist
+window.toggleGroceryItem = function(id) {
+    const item = appState.groceryList.find(i => i.id === id);
+    if (item) {
+        item.completed = !item.completed;
+        saveState();
+        renderGroceryListWidget();
+    }
+};
+
+window.deleteGroceryItem = function(id) {
+    appState.groceryList = appState.groceryList.filter(i => i.id !== id);
+    saveState();
+    renderGroceryListWidget();
+};
+
+window.clearCheckedGroceries = function() {
+    appState.groceryList = appState.groceryList.filter(i => !i.completed);
+    saveState();
+    renderGroceryListWidget();
+};
+
+// Global hooks for room checklist
 window.toggleChecklistItem = function(id) {
     const item = appState.checklist.find(i => i.id === id);
     if (item) {
@@ -858,7 +1047,7 @@ window.deleteChecklistItem = function(id) {
     renderActiveTab('tab-checklist');
 };
 
-// PWA Data Backup and Restore
+// Backup and Restore utilities
 window.exportBackup = function() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState));
     const downloadAnchor = document.createElement('a');
@@ -887,10 +1076,10 @@ window.importBackup = function(event) {
                 alert('Backup restaurado com sucesso! O painel será atualizado.');
                 location.reload();
             } else {
-                alert('Arquivo de backup inválido. Verifique o arquivo selecionado.');
+                alert('Arquivo de backup inválido.');
             }
         } catch (err) {
-            alert('Erro ao processar o arquivo de backup.');
+            alert('Erro ao processar o backup.');
         }
     };
     reader.readAsText(file);
@@ -916,6 +1105,62 @@ function setupEventListeners() {
             saveState();
             renderActiveTab('tab-finances');
             alert('Custos atualizados com sucesso!');
+        });
+    }
+    
+    // Dynamic Goals Creators (CNH / Apartment / Custom Goals)
+    const addGoalForm = document.getElementById('add-goal-form');
+    if (addGoalForm) {
+        addGoalForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const title = document.getElementById('goal-title').value;
+            const target = parseFloat(document.getElementById('goal-target').value);
+            
+            if (!title.trim() || isNaN(target) || target <= 0) return;
+            
+            const newGoal = {
+                id: 'goal-' + Date.now(),
+                title,
+                target,
+                saved: 0
+            };
+            
+            appState.savingsGoals.push(newGoal);
+            saveState();
+            
+            document.getElementById('goal-title').value = '';
+            document.getElementById('goal-target').value = '';
+            
+            renderActiveTab('tab-finances');
+            alert('Nova meta de poupança adicionada!');
+        });
+    }
+    
+    // Dynamic Debts Creators (Mercado Pago / CC / Client / Custom Debts)
+    const addDebtForm = document.getElementById('add-debt-form');
+    if (addDebtForm) {
+        addDebtForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const title = document.getElementById('debt-title').value;
+            const target = parseFloat(document.getElementById('debt-target').value);
+            
+            if (!title.trim() || isNaN(target) || target <= 0) return;
+            
+            const newDebt = {
+                id: 'debt-' + Date.now(),
+                title,
+                target,
+                paid: 0
+            };
+            
+            appState.debts.push(newDebt);
+            saveState();
+            
+            document.getElementById('debt-title').value = '';
+            document.getElementById('debt-target').value = '';
+            
+            renderActiveTab('tab-finances');
+            alert('Nova dívida/passivo registrado!');
         });
     }
     
@@ -1001,6 +1246,10 @@ function setupEventListeners() {
                     <option value="academia">Academia</option>
                     <option value="lazer_esposa">Lazer / Esposa</option>
                     <option value="divida">Dívida / Passivo</option>
+                    <option value="quarto_item">Compras do Quarto</option>
+                    <option value="mercado_filhos">Mercado dos Filhos</option>
+                    <option value="transporte_filhos">Transporte dos Filhos</option>
+                    <option value="presentes">Presentes Filhos</option>
                     <option value="outros">Outras Despesas</option>
                 `;
             }
@@ -1038,6 +1287,29 @@ function setupEventListeners() {
             document.getElementById('check-price').value = '';
             
             renderActiveTab('tab-checklist');
+        });
+    }
+    
+    // Add grocery item form
+    const addGroceryForm = document.getElementById('add-grocery-form');
+    if (addGroceryForm) {
+        addGroceryForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = document.getElementById('grocery-text').value;
+            
+            if (!text.trim()) return;
+            
+            const newItem = {
+                id: Date.now(),
+                text,
+                completed: false
+            };
+            
+            appState.groceryList.push(newItem);
+            saveState();
+            
+            document.getElementById('grocery-text').value = '';
+            renderGroceryListWidget();
         });
     }
 }
