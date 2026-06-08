@@ -1078,3 +1078,36 @@ input:checked + .slider:before {
         min-height: auto;
     }
 }
+
+/* Gamification Ranks Styling */
+.rank-survivor {
+    border-left: 5px solid var(--accent-danger) !important;
+    background: linear-gradient(135deg, var(--bg-glass), hsla(355, 80%, 55%, 0.03)) !important;
+}
+.rank-transition {
+    border-left: 5px solid var(--accent-warning) !important;
+    background: linear-gradient(135deg, var(--bg-glass), hsla(35, 90%, 50%, 0.03)) !important;
+}
+.rank-solid {
+    border-left: 5px solid var(--accent-primary) !important;
+    background: linear-gradient(135deg, var(--bg-glass), hsla(205, 90%, 55%, 0.03)) !important;
+}
+.rank-home {
+    border-left: 5px solid var(--accent-purple) !important;
+    background: linear-gradient(135deg, var(--bg-glass), hsla(270, 75%, 60%, 0.04)) !important;
+    box-shadow: 0 0 15px hsla(270, 75%, 60%, 0.1), var(--shadow-premium) !important;
+}
+.rank-king {
+    border-left: 5px solid var(--accent-success) !important;
+    background: linear-gradient(135deg, var(--bg-glass), hsla(145, 70%, 45%, 0.05)) !important;
+    box-shadow: 0 0 25px hsla(145, 70%, 45%, 0.15), var(--shadow-premium) !important;
+}
+
+/* Backup and Restore Utilities */
+.backup-section {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    border-top: 1px solid var(--border-glass);
+    padding-top: 1.5rem;
+}

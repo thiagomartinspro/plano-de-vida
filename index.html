@@ -85,6 +85,20 @@
             <!-- TAB 1: VISÃO GERAL (DASHBOARD) -->
             <div id="tab-dashboard" class="tab-panel active">
                 
+                <!-- 🏆 DYNAMIC REBIRTH GAMIFIED SCORE CARD (ADHD Focus Booster) -->
+                <div class="glass-card rank-survivor" id="dash-rebirth-card" style="border-left: 6px solid var(--accent-danger);">
+                    <div class="glass-card-header" style="margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-secondary); font-weight: 700;">Progresso Geral do Recomeço</span>
+                        <span class="phase-status-label" style="background: hsla(205, 90%, 55%, 0.15); color: var(--accent-primary); font-weight: 700; border-radius: 4px;" id="dash-rebirth-bar-label">0% Concluído</span>
+                    </div>
+                    <h2 style="font-size: 2.25rem; font-weight: 800; margin-bottom: 0.35rem; letter-spacing: -0.5px; display: flex; align-items: center; gap: 0.5rem;" id="dash-rebirth-rank">Guerreiro do Asfalto 🏍️</h2>
+                    <p style="color: var(--text-primary); font-size: 1rem; margin-bottom: 1.25rem; line-height: 1.45; font-weight: 500;" id="dash-rebirth-motto">O início é o mais difícil. Foque em pagar o Mercado Pago e acelerar na moto!</p>
+                    
+                    <div class="goal-bar-container" style="height: 12px; border-radius: 6px; background: rgba(255,255,255,0.05); margin-bottom: 0.25rem;">
+                        <div class="goal-bar-fill success" id="dash-rebirth-progress-bar" style="border-radius: 6px; width: 0%; background: linear-gradient(to right, var(--accent-primary), var(--accent-success));"></div>
+                    </div>
+                </div>
+
                 <!-- Quick Balances & Targets Row -->
                 <div class="grid-2">
                     <!-- Saldo Moto (Daily Survival) -->
@@ -154,48 +168,80 @@
                     </form>
                 </div>
 
-                <!-- Phased Journey Tracker -->
-                <div class="glass-card">
-                    <div class="glass-card-header">
-                        <span class="glass-card-title"><i data-lucide="milestone"></i> Etapas do seu Plano de Vida</span>
-                        <span class="phase-status-label" id="dash-current-phase-title" style="color: var(--accent-warning); background: hsla(35, 90%, 50%, 0.15);">Fase 1</span>
+                <div class="grid-2">
+                    <!-- Phased Journey Tracker -->
+                    <div class="glass-card">
+                        <div class="glass-card-header">
+                            <span class="glass-card-title"><i data-lucide="milestone"></i> Etapas do seu Plano de Vida</span>
+                            <span class="phase-status-label" id="dash-current-phase-title" style="color: var(--accent-warning); background: hsla(35, 90%, 50%, 0.15);">Fase 1</span>
+                        </div>
+                        <p style="margin-bottom: 1.5rem; color: var(--text-secondary); line-height: 1.4; font-size: 0.85rem;" id="dash-current-phase-desc"></p>
+                        
+                        <div style="margin-bottom: 2rem;">
+                            <div class="goal-bar-info" style="margin-bottom: 0.5rem;">
+                                <span style="font-weight: 600; font-size: 0.85rem;">Progresso da Etapa Atual:</span>
+                                <span id="dash-phase-bar-label" style="font-weight: 700; color: var(--accent-warning); font-size: 0.85rem;">0%</span>
+                            </div>
+                            <div class="goal-bar-container" style="height: 12px; border-radius: 6px;">
+                                <div class="goal-bar-fill success" id="dash-phase-progress-bar" style="background: linear-gradient(to right, var(--accent-warning), var(--accent-success)); border-radius: 6px;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="phases-timeline">
+                            <div class="phase-item" id="phase-1-item">
+                                <div class="phase-badge">1</div>
+                                <div class="phase-info">
+                                    <h3>Fase 1: Estabilização e MP</h3>
+                                    <p>Moto 99 cobre dia a dia. Digital quita parcela do Mercado Pago e CNH B.</p>
+                                </div>
+                                <span class="phase-status-label" id="phase-1-status">Ativo</span>
+                            </div>
+                            <div class="phase-item" id="phase-2-item">
+                                <div class="phase-badge">2</div>
+                                <div class="phase-info">
+                                    <h3>Fase 2: Conforto e CNH B (Carro)</h3>
+                                    <p>Dívidas limpas. Foco 100% no carro e em equipar o quarto para os meninos.</p>
+                                </div>
+                                <span class="phase-status-label" id="phase-2-status">Bloqueado</span>
+                            </div>
+                            <div class="phase-item" id="phase-3-item">
+                                <div class="phase-badge">3</div>
+                                <div class="phase-info">
+                                    <h3>Fase 3: Aluguel do Apê & Reencontro</h3>
+                                    <p>Com CNH na mão, criar reserva do apê, alugar carro, e trazer esposa e filha.</p>
+                                </div>
+                                <span class="phase-status-label" id="phase-3-status">Bloqueado</span>
+                            </div>
+                        </div>
                     </div>
-                    <p style="margin-bottom: 1.5rem; color: var(--text-secondary); line-height: 1.4;" id="dash-current-phase-desc"></p>
-                    
-                    <div style="margin-bottom: 2rem;">
-                        <div class="goal-bar-info" style="margin-bottom: 0.5rem;">
-                            <span style="font-weight: 600;">Progresso da Etapa Atual:</span>
-                            <span id="dash-phase-bar-label" style="font-weight: 700; color: var(--accent-warning);">0%</span>
-                        </div>
-                        <div class="goal-bar-container" style="height: 12px; border-radius: 6px;">
-                            <div class="goal-bar-fill success" id="dash-phase-progress-bar" style="background: linear-gradient(to right, var(--accent-warning), var(--accent-success)); border-radius: 6px;"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="phases-timeline">
-                        <div class="phase-item" id="phase-1-item">
-                            <div class="phase-badge">1</div>
-                            <div class="phase-info">
-                                <h3>Fase 1: Sobrevivência & Quitação</h3>
-                                <p>Moto 99 cobre custos diários. Receita do Digital quita a cliente urgente (R$ 3.500,00).</p>
+
+                    <!-- ⏱️ TIME PROJECTION CALCULATOR WIDGET -->
+                    <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <div class="glass-card-header">
+                                <span class="glass-card-title" style="color: var(--accent-primary);"><i data-lucide="clock"></i> Estimativa de Tempo</span>
                             </div>
-                            <span class="phase-status-label" id="phase-1-status">Ativo</span>
-                        </div>
-                        <div class="phase-item" id="phase-2-item">
-                            <div class="phase-badge">2</div>
-                            <div class="phase-info">
-                                <h3>Fase 2: Conforto e Habilitação B (Carro)</h3>
-                                <p>Dívidas limpas. Excedente do Digital poupado para a CNH B e utensílios para os filhos.</p>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.4;">Projeção baseada na receita digital atualizada em tempo real para te dar clareza.</p>
+                            
+                            <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-glass); padding-bottom: 0.5rem; font-size: 0.95rem;">
+                                    <span style="color: var(--text-secondary);">Falta acumular (Total Geral):</span>
+                                    <strong id="dash-proj-remaining" style="color: var(--accent-danger);">R$ 0,00</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-glass); padding-bottom: 0.5rem; font-size: 1.1rem; font-weight: 700;">
+                                    <span style="color: var(--text-primary);">Tempo Estimado:</span>
+                                    <strong id="dash-proj-months" style="color: var(--accent-success);">0 meses</strong>
+                                </div>
                             </div>
-                            <span class="phase-status-label" id="phase-2-status">Bloqueado</span>
                         </div>
-                        <div class="phase-item" id="phase-3-item">
-                            <div class="phase-badge">3</div>
-                            <div class="phase-info">
-                                <h3>Fase 3: Escala e Apartamento da Família</h3>
-                                <p>Alugar o carro, fazer a reserva de R$ 4.000,00 e alugar o apartamento para reatar com sua esposa e filha.</p>
+
+                        <div class="form-group" style="background: hsla(220, 20%, 15%, 0.3); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass);">
+                            <label for="input-proj-digital" style="font-weight:600; color:var(--text-primary);">Aporte Mensal Estimado do Digital:</label>
+                            <div class="input-wrapper" style="margin-top: 0.5rem;">
+                                <span>R$</span>
+                                <input type="number" id="input-proj-digital" placeholder="1500" style="background: var(--bg-main); font-weight: 700; font-size: 1.1rem; color: var(--accent-primary);" value="1500">
                             </div>
-                            <span class="phase-status-label" id="phase-3-status">Bloqueado</span>
+                            <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.5rem;">Aumente este valor conforme fechar mais clientes para ver a data se aproximar!</span>
                         </div>
                     </div>
                 </div>
@@ -225,7 +271,7 @@
                     </div>
                     
                     <div class="glass-card">
-                        <span class="metric-label" style="font-weight:600;">Poupança Protegida (CNH + Apê)</span>
+                        <span class="metric-label" style="font-weight:600;">Poupança Protegida (CNH + Reservas)</span>
                         <div class="goal-bar-container" style="margin-top: 1rem;">
                             <div class="goal-bar-fill primary" id="dash-savings-progress-bar"></div>
                         </div>
@@ -379,6 +425,31 @@
                     </div>
                 </div>
 
+                <!-- 🗺️ PHYSICAL CAIXINHAS GUIDE (Educational for ADHD Financial Hygiene) -->
+                <div class="glass-card" style="margin-top: 1.5rem; border: 1px dashed var(--accent-primary); background: hsla(205, 90%, 55%, 0.02);">
+                    <div class="glass-card-header">
+                        <span class="glass-card-title" style="color: var(--accent-primary);"><i data-lucide="help-circle"></i> Organização Física: Onde coloco o dinheiro no mundo real?</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; font-size: 0.85rem; line-height: 1.45;">
+                        <div>
+                            <h4 style="color: var(--accent-success); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.25rem;"><i data-lucide="wallet" style="width:16px;"></i> Conta 1: Caixa da Moto</h4>
+                            <p style="color: var(--text-secondary);"><strong>Onde:</strong> Mercado Pago ou outra conta rápida.<br><strong>O que entra:</strong> 99 Moto diário.<br><strong>O que sai:</strong> Gasolina, aluguel semanal da moto, aluguel do quarto e sua alimentação na rua.</p>
+                        </div>
+                        <div>
+                            <h4 style="color: var(--accent-primary); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.25rem;"><i data-lucide="briefcase" style="width:16px;"></i> Conta 2: Entrada Digital</h4>
+                            <p style="color: var(--text-secondary);"><strong>Onde:</strong> Nubank ou Inter (onde caem os clientes).<br><strong>O que entra:</strong> Tráfego, criação de sites e curso.<br><strong>Ação:</strong> Distribua imediatamente para as reservas abaixo.</p>
+                        </div>
+                        <div>
+                            <h4 style="color: var(--accent-warning); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.25rem;"><i data-lucide="shield" style="width:16px;"></i> Caixinha 3: CNH & Dívidas</h4>
+                            <p style="color: var(--text-secondary);"><strong>Onde:</strong> Caixinha específica no Nubank.<br><strong>Ação:</strong> Guarde os aportes mensais da parcela do MP e os R$ 2.500,00 da habilitação B de carro.</p>
+                        </div>
+                        <div>
+                            <h4 style="color: var(--accent-purple); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.25rem;"><i data-lucide="heart" style="width:16px;"></i> Caixinha 4: Reserva do Apê</h4>
+                            <p style="color: var(--text-secondary);"><strong>Onde:</strong> Conta travada (CDB/RDB que renda 100% CDI).<br><strong>Ação:</strong> Vá jogando os valores da Reserva de Emergência (R$ 6k) e Depósito (R$ 4k). Não toque sob hipótese alguma.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid-2" style="margin-top: 1.5rem;">
                     <!-- Debts Control Panel -->
                     <div class="glass-card">
@@ -421,6 +492,19 @@
                                 <!-- Populated dynamically by JS -->
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- 📂 BACKUP & RESTORE SECTION -->
+                <div class="glass-card" style="margin-top: 1.5rem; border: 1px solid var(--border-glass-light);">
+                    <div class="glass-card-header">
+                        <span class="glass-card-title"><i data-lucide="hard-drive"></i> Cópia de Segurança & Backup dos Dados</span>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.25rem; line-height: 1.4;">Seus dados ficam armazenados de forma privada na memória deste dispositivo. Faça o download de uma cópia de segurança para o seu computador/Google Drive regularmente para evitar perdas se limpar o histórico do navegador.</p>
+                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                        <button class="btn-primary" onclick="exportBackup()"><i data-lucide="download" style="width:16px;"></i> Exportar Cópia (Backup)</button>
+                        <button class="btn-success" onclick="triggerImport()"><i data-lucide="upload" style="width:16px;"></i> Importar / Restaurar Cópia</button>
+                        <input type="file" id="backup-file-input" style="display:none;" onchange="importBackup(event)">
                     </div>
                 </div>
             </div>

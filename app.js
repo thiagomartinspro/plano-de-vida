@@ -1,4 +1,4 @@
-// Default Data Structure with Unified Transactions
+// Default Data Structure - Prioritized for CNH, MP Installments, and Emergency Fund
 const DEFAULT_DATA = {
     costs: {
         rent: 550,
@@ -11,13 +11,14 @@ const DEFAULT_DATA = {
         workDaysPerWeek: 6
     },
     debts: [
-        { id: 'debt-client', title: 'Reposição Cliente Digital', target: 3500, paid: 0 },
-        { id: 'debt-mp', title: 'Empréstimo Mercado Pago', target: 800, paid: 0 },
-        { id: 'debt-cc', title: 'Fatura Cartão de Crédito', target: 1200, paid: 0 }
+        { id: 'debt-mp', title: 'Empréstimo Mercado Pago (Parcelado)', target: 800, paid: 0 },
+        { id: 'debt-cc', title: 'Fatura Cartão de Crédito', target: 1200, paid: 0 },
+        { id: 'debt-client', title: 'Reposição Cliente Digital (Aportes Graduais)', target: 3500, paid: 0 }
     ],
     savingsGoals: [
         { id: 'goal-cnh', title: 'Habilitação B (Carro)', target: 2500, saved: 0 },
-        { id: 'goal-apartment', title: 'Reserva p/ Depósito do Apê', target: 4000, saved: 0 }
+        { id: 'goal-reserve', title: 'Reserva de Emergência Apê', target: 6000, saved: 0 },
+        { id: 'goal-apartment', title: 'Depósito Aluguel Apê', target: 4000, saved: 0 }
     ],
     checklist: [
         { id: 1, text: 'Panela de arroz elétrica (para os meninos)', category: 'kids', price: 140, completed: false, txId: null },
@@ -31,7 +32,8 @@ const DEFAULT_DATA = {
         { id: 1, date: '2026-06-08', type: 'income', amount: 160, source: 'moto', category: 'faturamento', notes: 'Primeiro dia de rodagem' }
     ],
     kidsWeek: false,
-    activeTab: 'tab-dashboard'
+    activeTab: 'tab-dashboard',
+    estimatedMonthlyDigital: 1500 // User editable for time projection
 };
 
 let appState = {};
@@ -50,7 +52,8 @@ function loadState() {
                 debts: appState.debts || DEFAULT_DATA.debts,
                 savingsGoals: appState.savingsGoals || DEFAULT_DATA.savingsGoals,
                 checklist: appState.checklist || DEFAULT_DATA.checklist,
-                transactions: appState.transactions || DEFAULT_DATA.transactions
+                transactions: appState.transactions || DEFAULT_DATA.transactions,
+                estimatedMonthlyDigital: appState.estimatedMonthlyDigital !== undefined ? appState.estimatedMonthlyDigital : DEFAULT_DATA.estimatedMonthlyDigital
             };
         } catch (e) {
             console.error("Erro ao carregar dados, reiniciando.", e);
@@ -101,10 +104,11 @@ function calculateMetrics() {
         }
     });
 
-    // Also deduct savings goal assignments from Digital balance
+    // Deduct savings goal assignments from Digital balance
     const totalSavedCNH = appState.savingsGoals.find(g => g.id === 'goal-cnh')?.saved || 0;
+    const totalSavedReserve = appState.savingsGoals.find(g => g.id === 'goal-reserve')?.saved || 0;
     const totalSavedApartment = appState.savingsGoals.find(g => g.id === 'goal-apartment')?.saved || 0;
-    const totalInSavings = totalSavedCNH + totalSavedApartment;
+    const totalInSavings = totalSavedCNH + totalSavedReserve + totalSavedApartment;
     
     // Available digital balance is digital ledger minus protected savings
     const availableDigitalBalance = balanceDigital - totalInSavings;
@@ -119,7 +123,7 @@ function calculateMetrics() {
     const spentChecklist = appState.checklist.filter(item => item.completed).reduce((sum, item) => sum + item.price, 0);
     const remainingChecklist = totalChecklist - spentChecklist;
     
-    // Monthly current faturamento summary (Moto vs Digital)
+    // Monthly faturamento summary (Moto vs Digital)
     const currentMonthStr = new Date().toISOString().substring(0, 7);
     const monthlyMotoIncome = appState.transactions
         .filter(tx => tx.date.startsWith(currentMonthStr) && tx.source === 'moto' && tx.type === 'income')
@@ -138,6 +142,7 @@ function calculateMetrics() {
         availableDigitalBalance,
         totalInSavings,
         totalSavedCNH,
+        totalSavedReserve,
         totalSavedApartment,
         totalDebtsTarget,
         totalDebtsPaid,
@@ -151,48 +156,113 @@ function calculateMetrics() {
     };
 }
 
-// Determine current phase
+// Calculate Overall Rebirth Score & Time Projection
+function calculateGamification(metrics) {
+    // Total financial burden (All debts + Savings targets + Shopping list)
+    const totalTarget = metrics.totalDebtsTarget + 2500 + 6000 + 4000 + metrics.totalChecklist;
+    const totalAccumulated = metrics.totalDebtsPaid + metrics.totalInSavings + metrics.spentChecklist;
+    
+    const overallProgressPercent = totalTarget > 0 ? (totalAccumulated / totalTarget) * 100 : 100;
+    
+    // Define Rank and motivational phrase
+    let rank = "Guerreiro do Asfalto 🏍️";
+    let motto = "O início é o mais difícil. Foque em pagar o Mercado Pago e acelerar na moto!";
+    let rankClass = "rank-survivor";
+    
+    if (overallProgressPercent >= 20 && overallProgressPercent < 50) {
+        rank = "Piloto Em Transição 🚗";
+        motto = "Habilitação na mira! O digital está começando a aliviar seu passado.";
+        rankClass = "rank-transition";
+    } else if (overallProgressPercent >= 50 && overallProgressPercent < 80) {
+        rank = "Base Sólida 🏢";
+        motto = "Contas limpas, CNH conquistada e Reserva de Emergência crescendo!";
+        rankClass = "rank-solid";
+    } else if (overallProgressPercent >= 80 && overallProgressPercent < 100) {
+        rank = "Próximo ao Reencontro 🏠";
+        motto = "A carteira na mão, reservas prontas. Falta muito pouco para o apê!";
+        rankClass = "rank-home";
+    } else if (overallProgressPercent === 100) {
+        rank = "Líder do Lar 👑";
+        motto = "Objetivo alcançado! Família reunida, patrimônio e paz garantidos.";
+        rankClass = "rank-king";
+    }
+    
+    // Calculate remaining funds needed
+    const remainingToGoal = totalTarget - totalAccumulated;
+    
+    // Time projection based on estimated monthly digital income
+    const monthlyDigital = appState.estimatedMonthlyDigital || 1500;
+    // Estimated monthly moto surplus (e.g. if he makes more than target, but let's assume R$ 200/month surplus to be conservative)
+    const estimatedMotoSurplusMonthly = 200; 
+    const totalMonthlyEarningPotential = monthlyDigital + estimatedMotoSurplusMonthly;
+    
+    const monthsRemaining = totalMonthlyEarningPotential > 0 ? (remainingToGoal / totalMonthlyEarningPotential) : 99;
+    
+    return {
+        overallProgressPercent,
+        rank,
+        motto,
+        rankClass,
+        remainingToGoal,
+        monthsRemaining
+    };
+}
+
+// Determine current phase based on CNH, MP, and Apartment sequence
 function determinePhase(metrics) {
-    const clientDebt = appState.debts.find(d => d.id === 'debt-client');
-    const clientDebtCleared = clientDebt ? clientDebt.paid >= clientDebt.target : true;
-    const debtsCleared = metrics.remainingDebts === 0;
+    const mpDebt = appState.debts.find(d => d.id === 'debt-mp');
+    const mpDebtCleared = mpDebt ? mpDebt.paid >= mpDebt.target : true;
     
     const cnhGoal = appState.savingsGoals.find(g => g.id === 'goal-cnh');
     const cnhSaved = cnhGoal ? cnhGoal.saved >= cnhGoal.target : false;
     
+    const ccDebt = appState.debts.find(d => d.id === 'debt-cc');
+    const ccDebtCleared = ccDebt ? ccDebt.paid >= ccDebt.target : true;
+
+    const reserveGoal = appState.savingsGoals.find(g => g.id === 'goal-reserve');
+    const reserveSaved = reserveGoal ? reserveGoal.saved >= reserveGoal.target : false;
+    
     const apartmentGoal = appState.savingsGoals.find(g => g.id === 'goal-apartment');
     const apartmentSaved = apartmentGoal ? apartmentGoal.saved >= apartmentGoal.target : false;
     
-    if (!clientDebtCleared) {
+    if (!mpDebtCleared) {
         return { 
             phaseNum: 1, 
-            title: 'Fase 1: Sobrevivência e Quitação', 
-            description: 'Moto 99 cobre seu dia a dia (quarto, alimentação, moto). Faturamento Digital quita a dívida urgente de R$ 3.500,00 da cliente.',
-            progressLabel: 'Reposição Cliente Digital',
-            progressPercent: clientDebt ? (clientDebt.paid / clientDebt.target) * 100 : 100
+            title: 'Fase 1: Estabilização e Mercado Pago', 
+            description: 'Foco em pagar a moto/quarto e quitar a parcela do Mercado Pago. A cliente de R$ 3.5k pode ser amortizada gradualmente.',
+            progressLabel: 'Quitação Mercado Pago',
+            progressPercent: mpDebt ? (mpDebt.paid / mpDebt.target) * 100 : 100
         };
-    } else if (clientDebtCleared && !debtsCleared) {
-        return { 
-            phaseNum: 1.5, 
-            title: 'Fase 1.5: Ajuste de Passivos', 
-            description: 'Dívida principal quitada! Agora, limpando as faturas de cartão de crédito e empréstimo Mercado Pago.',
-            progressLabel: 'Quitação das Outras Dívidas',
-            progressPercent: ((metrics.totalDebtsPaid - (clientDebt ? clientDebt.target : 0)) / (metrics.totalDebtsTarget - (clientDebt ? clientDebt.target : 0))) * 100
-        };
-    } else if (debtsCleared && !cnhSaved) {
+    } else if (mpDebtCleared && !cnhSaved) {
         return { 
             phaseNum: 2, 
-            title: 'Fase 2: Conforto e Habilitação de Carro', 
-            description: 'Dívidas zeradas! O excedente do Digital agora é poupado para tirar a CNH B (carro) e comprar itens de conforto para os filhos.',
-            progressLabel: 'Meta Poupança CNH B',
+            title: 'Fase 2: Mobilidade e CNH B', 
+            description: 'Mercado Pago quitado! O excedente do Digital vai 100% para os R$ 2.500,00 da Habilitação B de carro (prioridade máxima).',
+            progressLabel: 'Poupança CNH B',
             progressPercent: cnhGoal ? (cnhGoal.saved / cnhGoal.target) * 100 : 100
+        };
+    } else if (cnhSaved && !ccDebtCleared) {
+        return {
+            phaseNum: 2.5,
+            title: 'Fase 2.5: Limpeza de Cartão de Crédito',
+            description: 'CNH B garantida! Agora limpando a fatura do cartão de crédito para restaurar crédito financeiro.',
+            progressLabel: 'Quitação Cartão de Crédito',
+            progressPercent: ccDebt ? (ccDebt.paid / ccDebt.target) * 100 : 100
+        };
+    } else if (ccDebtCleared && !reserveSaved) {
+        return { 
+            phaseNum: 3, 
+            title: 'Fase 3: Reserva de Emergência do Apê', 
+            description: 'Chega de dívidas básicas! Criando a reserva de segurança de R$ 6.000,00 para sustentar o apartamento sem passar aperto.',
+            progressLabel: 'Reserva de Emergência',
+            progressPercent: reserveGoal ? (reserveGoal.saved / reserveGoal.target) * 100 : 100
         };
     } else {
         return { 
-            phaseNum: 3, 
-            title: 'Fase 3: Escala e Conquista do Apê', 
-            description: 'Habilitação na mão. Foco no aluguel do carro e reserva de R$ 4.000,00 para depósito do apartamento definitivo. Escalando o Curso Online.',
-            progressLabel: 'Meta Reserva Depósito Apê',
+            phaseNum: 4, 
+            title: 'Fase 4: Aluguel do Apê e Reencontro', 
+            description: 'Sua reserva está pronta. Agora guardando o depósito de R$ 4.000,00 e garantindo a renda recorrente digital para alugar o apartamento.',
+            progressLabel: 'Poupança Depósito Apê',
             progressPercent: apartmentGoal ? (apartmentGoal.saved / apartmentGoal.target) * 100 : 100
         };
     }
@@ -244,13 +314,14 @@ function switchTab(tabId) {
 function renderActiveTab(tabId) {
     const metrics = calculateMetrics();
     const phase = determinePhase(metrics);
+    const gami = calculateGamification(metrics);
     
     // Update global widgets
     updateHeaderWidgets(metrics);
     
     switch (tabId) {
         case 'tab-dashboard':
-            renderDashboard(metrics, phase);
+            renderDashboard(metrics, phase, gami);
             break;
         case 'tab-finances':
             renderFinances(metrics);
@@ -281,7 +352,7 @@ function updateHeaderWidgets(metrics) {
 }
 
 // --- RENDER VISÃO GERAL (DASHBOARD) ---
-function renderDashboard(metrics, phase) {
+function renderDashboard(metrics, phase, gami) {
     // 1. Set balances widgets
     const balMotoEl = document.getElementById('dash-balance-moto');
     const balDigitalEl = document.getElementById('dash-balance-digital');
@@ -304,7 +375,22 @@ function renderDashboard(metrics, phase) {
     document.getElementById('dash-phase-bar-label').textContent = `${phase.progressLabel} (${phase.progressPercent.toFixed(0)}%)`;
     document.getElementById('dash-phase-progress-bar').style.width = `${Math.min(100, phase.progressPercent)}%`;
     
-    // Timeline locks
+    // 3. Time projection outputs
+    document.getElementById('dash-proj-months').textContent = gami.monthsRemaining > 0 ? `${gami.monthsRemaining.toFixed(1)} meses` : 'Pronto!';
+    document.getElementById('dash-proj-remaining').textContent = formatBRL(gami.remainingToGoal);
+    document.getElementById('input-proj-digital').value = appState.estimatedMonthlyDigital;
+    
+    // 4. Overall Rebirth gamification score
+    document.getElementById('dash-rebirth-rank').textContent = gami.rank;
+    document.getElementById('dash-rebirth-motto').textContent = gami.motto;
+    document.getElementById('dash-rebirth-bar-label').textContent = `${gami.overallProgressPercent.toFixed(0)}% Concluído`;
+    document.getElementById('dash-rebirth-progress-bar').style.width = `${Math.min(100, gami.overallProgressPercent)}%`;
+    
+    // Apply rank styling
+    const rankWidget = document.getElementById('dash-rebirth-card');
+    rankWidget.className = `glass-card ${gami.rankClass}`;
+    
+    // 5. Timeline active phases
     const p1 = document.getElementById('phase-1-item');
     const p2 = document.getElementById('phase-2-item');
     const p3 = document.getElementById('phase-3-item');
@@ -318,7 +404,7 @@ function renderDashboard(metrics, phase) {
         document.getElementById('phase-1-status').textContent = 'Ativo';
         document.getElementById('phase-2-status').textContent = 'Bloqueado';
         document.getElementById('phase-3-status').textContent = 'Bloqueado';
-    } else if (phase.phaseNum === 2) {
+    } else if (phase.phaseNum >= 2 && phase.phaseNum < 3) {
         p1.classList.add('completed');
         p2.classList.add('active');
         document.getElementById('phase-1-status').textContent = 'Concluído';
@@ -333,29 +419,25 @@ function renderDashboard(metrics, phase) {
         document.getElementById('phase-3-status').textContent = 'Ativo';
     }
     
-    // 3. Quick stats bars
-    // Moto monthly goal progress
+    // 6. Quick stats bars
     const monthlyMotoGoal = metrics.totalSurvivalMonthly;
     const progressMotoPercent = Math.min(100, (metrics.monthlyMotoIncome / monthlyMotoGoal) * 100);
     document.getElementById('dash-moto-progress-bar').style.width = `${progressMotoPercent}%`;
     document.getElementById('dash-moto-progress-label').textContent = `${progressMotoPercent.toFixed(0)}% (${formatBRL(metrics.monthlyMotoIncome)} de ${formatBRL(monthlyMotoGoal)})`;
     
-    // Debts progress bar
     const progressDebtPercent = metrics.totalDebtsTarget > 0 ? (metrics.totalDebtsPaid / metrics.totalDebtsTarget) * 100 : 100;
     document.getElementById('dash-debt-progress-bar').style.width = `${progressDebtPercent}%`;
     document.getElementById('dash-debt-progress-label').textContent = `${progressDebtPercent.toFixed(0)}% (${formatBRL(metrics.totalDebtsPaid)} de ${formatBRL(metrics.totalDebtsTarget)})`;
     
-    // Savings progress bar (CNH + Apartment savings)
-    const totalSavingsGoal = 2500 + 4000;
+    const totalSavingsGoal = 2500 + 6000 + 4000;
     const progressSavingsPercent = (metrics.totalInSavings / totalSavingsGoal) * 100;
     document.getElementById('dash-savings-progress-bar').style.width = `${progressSavingsPercent}%`;
     document.getElementById('dash-savings-progress-label').textContent = `${progressSavingsPercent.toFixed(0)}% (${formatBRL(metrics.totalInSavings)} de ${formatBRL(totalSavingsGoal)})`;
     
-    // 4. Recent Transactions
+    // 7. Recent Transactions
     const tbody = document.getElementById('dash-recent-earnings-body');
     tbody.innerHTML = '';
     
-    // Sort transactions reverse-chronologically, slice top 5
     const recentTx = [...appState.transactions]
         .sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id)
         .slice(0, 5);
@@ -442,7 +524,7 @@ function renderFinances(metrics) {
         appState.savingsGoals.forEach(goal => {
             const percent = Math.min(100, (goal.saved / goal.target) * 100);
             const goalDiv = document.createElement('div');
-            goalDiv.className = 'debt-item'; // reuse box styling
+            goalDiv.className = 'debt-item';
             goalDiv.style.borderColor = 'hsla(205, 90%, 55%, 0.3)';
             goalDiv.innerHTML = `
                 <div class="debt-meta">
@@ -457,7 +539,7 @@ function renderFinances(metrics) {
                     <span>Total: ${formatBRL(goal.target)} (${percent.toFixed(0)}%)</span>
                 </div>
                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items:center;">
-                    <span style="font-size:0.75rem; color:var(--text-muted);">Sacar da Reserva Digital:</span>
+                    <span style="font-size:0.75rem; color:var(--text-muted);">Deixar guardado:</span>
                     <input type="number" placeholder="Valor p/ guardar" id="save-input-${goal.id}" style="width: 120px; padding: 0.35rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-main); color: white; outline: none; font-size: 0.85rem;">
                     <button class="btn-success" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" onclick="depositToSavings('${goal.id}')">Guardar</button>
                 </div>
@@ -500,7 +582,7 @@ function renderFinances(metrics) {
     }
 }
 
-// Global hook to pay off debts (deducts from digital balance or logs)
+// Global hook to pay off debts
 window.addPaymentToDebt = function(debtId) {
     const inputEl = document.getElementById(`pay-input-${debtId}`);
     const payVal = parseFloat(inputEl.value);
@@ -509,7 +591,6 @@ window.addPaymentToDebt = function(debtId) {
     
     const debt = appState.debts.find(d => d.id === debtId);
     if (debt) {
-        // Log this debt payoff as an expense from Digital balance!
         const newTx = {
             id: Date.now(),
             date: new Date().toISOString().substring(0, 10),
@@ -530,14 +611,13 @@ window.addPaymentToDebt = function(debtId) {
     }
 };
 
-// Global hook to assign money to savings goals (cnh / apartment)
+// Global hook to assign money to savings goals (cnh / emergency / apartment)
 window.depositToSavings = function(goalId) {
     const inputEl = document.getElementById(`save-input-${goalId}`);
     const saveVal = parseFloat(inputEl.value);
     
     if (isNaN(saveVal) || saveVal <= 0) return;
     
-    // Check if we have enough digital balance available to lock away
     const metrics = calculateMetrics();
     if (metrics.availableDigitalBalance < saveVal) {
         alert(`Saldo Digital disponível insuficiente (${formatBRL(metrics.availableDigitalBalance)}). Deposite faturamento digital primeiro!`);
@@ -547,8 +627,6 @@ window.depositToSavings = function(goalId) {
     const goal = appState.savingsGoals.find(g => g.id === goalId);
     if (goal) {
         goal.saved = Math.min(goal.target, goal.saved + saveVal);
-        
-        // Save state
         saveState();
         renderActiveTab('tab-finances');
         inputEl.value = '';
@@ -558,7 +636,6 @@ window.depositToSavings = function(goalId) {
 
 // Global hook to delete transaction
 window.deleteTransaction = function(txId) {
-    // Check if this transaction is linked to a checklist item purchase
     const linkedItem = appState.checklist.find(item => item.txId === txId);
     if (linkedItem) {
         linkedItem.completed = false;
@@ -691,7 +768,7 @@ function getBlocksForDay(dayKey, hasKids) {
     return [];
 }
 
-// --- RENDER SHOPPING CHECKLIST TAB ---
+// --- RENDER SHOPPING CHECKLIST ---
 function renderChecklist(metrics) {
     document.getElementById('checklist-total-value').textContent = formatBRL(metrics.totalChecklist);
     document.getElementById('checklist-spent-value').textContent = formatBRL(metrics.spentChecklist);
@@ -747,7 +824,6 @@ window.toggleChecklistItem = function(id) {
         item.completed = !item.completed;
         
         if (item.completed) {
-            // Automatically log an expense from Digital balance!
             const txId = Date.now();
             const newTx = {
                 id: txId,
@@ -761,7 +837,6 @@ window.toggleChecklistItem = function(id) {
             item.txId = txId;
             appState.transactions.push(newTx);
         } else {
-            // Unchecked, remove transaction
             if (item.txId) {
                 appState.transactions = appState.transactions.filter(t => t.id !== item.txId);
                 item.txId = null;
@@ -781,6 +856,44 @@ window.deleteChecklistItem = function(id) {
     appState.checklist = appState.checklist.filter(i => i.id !== id);
     saveState();
     renderActiveTab('tab-checklist');
+};
+
+// PWA Data Backup and Restore
+window.exportBackup = function() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `foco_total_backup_${new Date().toISOString().substring(0,10)}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+};
+
+window.triggerImport = function() {
+    document.getElementById('backup-file-input').click();
+};
+
+window.importBackup = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedState = JSON.parse(e.target.result);
+            if (importedState.costs && importedState.transactions) {
+                appState = importedState;
+                saveState();
+                alert('Backup restaurado com sucesso! O painel será atualizado.');
+                location.reload();
+            } else {
+                alert('Arquivo de backup inválido. Verifique o arquivo selecionado.');
+            }
+        } catch (err) {
+            alert('Erro ao processar o arquivo de backup.');
+        }
+    };
+    reader.readAsText(file);
 };
 
 // --- CONTROLLERS & FORM HANDLERS ---
@@ -806,6 +919,19 @@ function setupEventListeners() {
         });
     }
     
+    // Time projection slider/input change listener
+    const digitalEstimatorInput = document.getElementById('input-proj-digital');
+    if (digitalEstimatorInput) {
+        digitalEstimatorInput.addEventListener('change', (e) => {
+            const val = parseFloat(e.target.value);
+            if (!isNaN(val) && val >= 0) {
+                appState.estimatedMonthlyDigital = val;
+                saveState();
+                renderActiveTab('tab-dashboard');
+            }
+        });
+    }
+    
     // Kids week toggle
     const kidsWeekToggle = document.getElementById('kids-week-toggle');
     if (kidsWeekToggle) {
@@ -816,18 +942,18 @@ function setupEventListeners() {
         });
     }
     
-    // 💡 ADHD QUICK LOG FORM (Dashboard tab form submission)
+    // ADHD QUICK LOG FORM
     const quickLogForm = document.getElementById('quick-log-form');
     if (quickLogForm) {
         quickLogForm.addEventListener('submit', (e) => {
             e.preventDefault();
             
-            const type = document.getElementById('quick-type').value; // 'income' or 'expense'
+            const type = document.getElementById('quick-type').value;
             const amount = parseFloat(document.getElementById('quick-amount').value);
-            const source = document.getElementById('quick-source').value; // 'moto' or 'digital'
+            const source = document.getElementById('quick-source').value;
             const category = document.getElementById('quick-category').value;
             const notes = document.getElementById('quick-notes').value;
-            const date = new Date().toISOString().substring(0, 10); // current local date
+            const date = new Date().toISOString().substring(0, 10);
             
             if (isNaN(amount) || amount <= 0) return;
             
@@ -844,7 +970,6 @@ function setupEventListeners() {
             appState.transactions.push(newTx);
             saveState();
             
-            // Clean inputs
             document.getElementById('quick-amount').value = '';
             document.getElementById('quick-notes').value = '';
             
@@ -852,7 +977,6 @@ function setupEventListeners() {
             alert('Lançamento registrado com sucesso!');
         });
         
-        // Dynamically adjust category dropdown based on type selection (income vs expense)
         const quickTypeSelect = document.getElementById('quick-type');
         const quickCatSelect = document.getElementById('quick-category');
         
@@ -883,11 +1007,10 @@ function setupEventListeners() {
         };
         
         quickTypeSelect.addEventListener('change', updateCategories);
-        // Trigger initial update
         updateCategories();
     }
     
-    // Add checklist item form submit
+    // Add checklist item form
     const checklistForm = document.getElementById('checklist-add-form');
     if (checklistForm) {
         checklistForm.addEventListener('submit', (e) => {
