@@ -1,4 +1,4 @@
-// Refactored Data Structure supporting Dynamic Debts, Savings, and Grocery list
+// Refactored Data Structure supporting Edit Modals and Advanced Visuals
 const DEFAULT_DATA = {
     costs: {
         rent: 550,
@@ -49,7 +49,6 @@ function loadState() {
     if (saved) {
         try {
             appState = JSON.parse(saved);
-            // Dynamic merge to prevent data loss on schema upgrades
             appState = {
                 ...DEFAULT_DATA,
                 ...appState,
@@ -68,8 +67,6 @@ function loadState() {
     } else {
         appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
     }
-    
-    // Auto-calculate if this week is kids week on load
     autoCalculateKidsWeek();
 }
 
@@ -78,7 +75,6 @@ function autoCalculateKidsWeek() {
     const baseFriday = new Date('2026-06-12T19:00:00');
     const today = new Date();
     
-    // Find the Friday of the current week (Mon-Sun)
     const day = today.getDay();
     const diffToFriday = 5 - day;
     const currentFriday = new Date(today);
@@ -88,7 +84,6 @@ function autoCalculateKidsWeek() {
     const timeDiff = currentFriday.getTime() - baseFriday.getTime();
     const diffDays = Math.round(timeDiff / (1000 * 3600 * 24));
     
-    // Alternate every 14 days
     if (diffDays % 14 === 0) {
         appState.kidsWeek = true;
     } else {
@@ -110,7 +105,6 @@ function formatBRL(value) {
 function calculateMetrics() {
     const { rent, motoRental, gasPerDay, foodPerDay, insurance, datesWithWife, gym, workDaysPerWeek } = appState.costs;
     
-    // Monthly projections
     const weeksPerMonth = 4.33;
     const monthlyMotoRental = motoRental * weeksPerMonth;
     const monthlyGas = gasPerDay * (workDaysPerWeek * weeksPerMonth);
@@ -121,7 +115,6 @@ function calculateMetrics() {
     const totalActiveDaysPerMonth = workDaysPerWeek * weeksPerMonth;
     const dailyTargetMoto = totalSurvivalMonthly / totalActiveDaysPerMonth;
     
-    // Calculate ledger-based balances (Moto vs Digital)
     let balanceMoto = 0;
     let balanceDigital = 0;
     
@@ -136,32 +129,26 @@ function calculateMetrics() {
         }
     });
 
-    // Deduct savings goal assignments from Digital balance
     const totalSavedCNH = appState.savingsGoals.find(g => g.id === 'goal-cnh')?.saved || 0;
     const totalSavedReserve = appState.savingsGoals.find(g => g.id === 'goal-reserve')?.saved || 0;
     const totalSavedApartment = appState.savingsGoals.find(g => g.id === 'goal-apartment')?.saved || 0;
     
-    // Any custom goals added dynamically
     const dynamicGoalsSaved = appState.savingsGoals
         .filter(g => !['goal-cnh', 'goal-reserve', 'goal-apartment'].includes(g.id))
         .reduce((sum, g) => sum + g.saved, 0);
         
     const totalInSavings = totalSavedCNH + totalSavedReserve + totalSavedApartment + dynamicGoalsSaved;
     
-    // Available digital balance is digital ledger minus protected savings
     const availableDigitalBalance = balanceDigital - totalInSavings;
     
-    // Debts status
     const totalDebtsTarget = appState.debts.reduce((sum, item) => sum + item.target, 0);
     const totalDebtsPaid = appState.debts.reduce((sum, item) => sum + item.paid, 0);
     const remainingDebts = totalDebtsTarget - totalDebtsPaid;
     
-    // Checklist progress
     const totalChecklist = appState.checklist.reduce((sum, item) => sum + item.price, 0);
     const spentChecklist = appState.checklist.filter(item => item.completed).reduce((sum, item) => sum + item.price, 0);
     const remainingChecklist = totalChecklist - spentChecklist;
     
-    // Monthly faturamento summary (Moto vs Digital)
     const currentMonthStr = new Date().toISOString().substring(0, 7);
     const monthlyMotoIncome = appState.transactions
         .filter(tx => tx.date.startsWith(currentMonthStr) && tx.source === 'moto' && tx.type === 'income')
@@ -239,7 +226,6 @@ function calculateGamification(metrics) {
         categoryTotals[tx.category] = (categoryTotals[tx.category] || 0) + parseFloat(tx.amount);
     });
     
-    // General TDAH-friendly tips based on highest costs
     let xrayTip = "Dica: Mantenha um lanche rápido na mochila para economizar até R$ 120/mês de alimentação na rua.";
     let highestCat = "";
     let maxCost = 0;
@@ -497,7 +483,7 @@ function renderDashboard(metrics, phase, gami) {
     document.getElementById('dash-savings-progress-bar').style.width = `${progressSavingsPercent}%`;
     document.getElementById('dash-savings-progress-label').textContent = `${progressSavingsPercent.toFixed(0)}% (${formatBRL(metrics.totalInSavings)} de ${formatBRL(totalSavingsGoal)})`;
     
-    // 7. Render financial X-Ray (Raio-X de Gastos)
+    // 7. Render financial X-Ray
     renderXrayWidget(gami);
     
     // 8. Render Next Kids Week Info
@@ -551,6 +537,9 @@ function renderXrayWidget(gami) {
         lazer_esposa: 'Encontros Esposa',
         divida: 'Amortização de Dívidas',
         quarto_item: 'Compras do Quarto',
+        mercado_filhos: 'Mercado Filhos',
+        transporte_filhos: 'Transporte Filhos',
+        presentes: 'Presentes Filhos',
         outros: 'Outros Gastos'
     };
     
@@ -590,13 +579,10 @@ function renderKidsScheduleWidget() {
     
     listEl.innerHTML = '';
     
-    // Find next 3 weekends
     let count = 0;
     let checkDate = new Date(baseFriday);
     
-    // If today is past the current weekend, start checking from the next one
     while (count < 3) {
-        // Create end date (Sunday at 18:00)
         let endSunday = new Date(checkDate);
         endSunday.setDate(checkDate.getDate() + 2);
         endSunday.setHours(18, 0, 0, 0);
@@ -605,7 +591,7 @@ function renderKidsScheduleWidget() {
             const dateStrStart = checkDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
             const dateStrEnd = endSunday.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
             
-            const isCurrent = appState.kidsWeek && count === 0 && (today.getTime() >= checkDate.getTime() - 4 * 86400000); // Mon-Sun of kids week
+            const isCurrent = appState.kidsWeek && count === 0 && (today.getTime() >= checkDate.getTime() - 4 * 86400000);
             
             const li = document.createElement('div');
             li.style.display = 'flex';
@@ -632,14 +618,12 @@ function renderKidsScheduleWidget() {
             count++;
         }
         
-        // Add 14 days
         checkDate.setDate(checkDate.getDate() + 14);
     }
 }
 
 // --- RENDER FINANCES TAB ---
 function renderFinances(metrics) {
-    // Fill Config Fields
     document.getElementById('input-rent').value = appState.costs.rent;
     document.getElementById('input-moto-rental').value = appState.costs.motoRental;
     document.getElementById('input-gas').value = appState.costs.gasPerDay;
@@ -649,7 +633,6 @@ function renderFinances(metrics) {
     document.getElementById('input-gym').value = appState.costs.gym;
     document.getElementById('input-workdays').value = appState.costs.workDaysPerWeek;
     
-    // Fill Calc breakdown
     const weeksPerMonth = 4.33;
     document.getElementById('calc-monthly-rent').textContent = formatBRL(appState.costs.rent);
     document.getElementById('calc-monthly-moto').textContent = formatBRL(appState.costs.motoRental * weeksPerMonth);
@@ -662,7 +645,7 @@ function renderFinances(metrics) {
     document.getElementById('calc-total-survival').textContent = formatBRL(metrics.totalSurvivalMonthly);
     document.getElementById('calc-daily-target').textContent = formatBRL(metrics.dailyTargetMoto);
     
-    // Render Debt List
+    // Render Debt List (with EDIT pencil button)
     const debtList = document.getElementById('finance-debts-list');
     debtList.innerHTML = '';
     
@@ -672,7 +655,7 @@ function renderFinances(metrics) {
         debtDiv.className = 'debt-item';
         debtDiv.innerHTML = `
             <div class="debt-meta">
-                <span class="debt-title">${debt.title}</span>
+                <span class="debt-title" style="font-weight: 600;">${debt.title}</span>
                 <span class="debt-amount">${formatBRL(debt.target - debt.paid)} restando</span>
             </div>
             <div class="goal-bar-container">
@@ -682,10 +665,14 @@ function renderFinances(metrics) {
                 <span>Pago: ${formatBRL(debt.paid)}</span>
                 <span>Total: ${formatBRL(debt.target)} (${percent.toFixed(0)}%)</span>
             </div>
-            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                <input type="number" placeholder="Valor p/ somar" class="input-pay-debt" id="pay-input-${debt.id}" style="width: 120px; padding: 0.35rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-main); color: white; outline: none; font-size: 0.85rem;">
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center;">
+                <input type="number" placeholder="Valor p/ somar" class="input-pay-debt" id="pay-input-${debt.id}" style="width: 110px; padding: 0.35rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-main); color: white; outline: none; font-size: 0.85rem;">
                 <button class="btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" onclick="addPaymentToDebt('${debt.id}')">Quitar</button>
-                <button class="btn-icon" style="width: 28px; height: 28px; background:transparent; border-color:transparent;" onclick="deleteDebtItem('${debt.id}')">
+                
+                <button class="btn-icon" style="width: 30px; height: 30px;" title="Editar valores" onclick="openEditModal('${debt.id}', 'debt')">
+                    <i data-lucide="edit-3" style="width: 14px; height: 14px; color: var(--accent-primary)"></i>
+                </button>
+                <button class="btn-icon" style="width: 30px; height: 30px;" title="Excluir" onclick="deleteDebtItem('${debt.id}')">
                     <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--accent-danger)"></i>
                 </button>
             </div>
@@ -693,7 +680,7 @@ function renderFinances(metrics) {
         debtList.appendChild(debtDiv);
     });
     
-    // Render Savings Goals
+    // Render Savings Goals (with EDIT pencil button)
     const savingsContainer = document.getElementById('finance-savings-list');
     if (savingsContainer) {
         savingsContainer.innerHTML = '';
@@ -704,7 +691,7 @@ function renderFinances(metrics) {
             goalDiv.style.borderColor = 'hsla(205, 90%, 55%, 0.3)';
             goalDiv.innerHTML = `
                 <div class="debt-meta">
-                    <span class="debt-title" style="color: var(--accent-primary);"><i data-lucide="shield-check" style="width:16px; vertical-align:middle; margin-right:4px;"></i>${goal.title}</span>
+                    <span class="debt-title" style="color: var(--accent-primary); font-weight: 600;"><i data-lucide="shield-check" style="width:16px; vertical-align:middle; margin-right:4px;"></i>${goal.title}</span>
                     <span class="debt-amount" style="color: var(--accent-primary);">${formatBRL(goal.target - goal.saved)} restando</span>
                 </div>
                 <div class="goal-bar-container">
@@ -715,10 +702,14 @@ function renderFinances(metrics) {
                     <span>Total: ${formatBRL(goal.target)} (${percent.toFixed(0)}%)</span>
                 </div>
                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items:center;">
-                    <span style="font-size:0.75rem; color:var(--text-muted);">Deixar guardado:</span>
-                    <input type="number" placeholder="Valor" id="save-input-${goal.id}" style="width: 90px; padding: 0.35rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-main); color: white; outline: none; font-size: 0.85rem;">
-                    <button class="btn-success" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" onclick="depositToSavings('${goal.id}')">Guardar</button>
-                    <button class="btn-icon" style="width: 28px; height: 28px; background:transparent; border-color:transparent;" onclick="deleteSavingsItem('${goal.id}')">
+                    <span style="font-size:0.75rem; color:var(--text-muted);">Guardar:</span>
+                    <input type="number" placeholder="Valor" id="save-input-${goal.id}" style="width: 80px; padding: 0.35rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid var(--border-glass); background: var(--bg-main); color: white; outline: none; font-size: 0.85rem;">
+                    <button class="btn-success" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" onclick="depositToSavings('${goal.id}')">Ok</button>
+                    
+                    <button class="btn-icon" style="width: 30px; height: 30px;" title="Editar valores" onclick="openEditModal('${goal.id}', 'goal')">
+                        <i data-lucide="edit-3" style="width: 14px; height: 14px; color: var(--accent-primary)"></i>
+                    </button>
+                    <button class="btn-icon" style="width: 30px; height: 30px;" title="Excluir" onclick="deleteSavingsItem('${goal.id}')">
                         <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--accent-danger)"></i>
                     </button>
                 </div>
@@ -760,6 +751,103 @@ function renderFinances(metrics) {
         });
     }
 }
+
+// 🖊️ OPEN EDIT DIALOG MODAL (Goals or Debts)
+window.openEditModal = function(id, type) {
+    const modal = document.getElementById('edit-modal');
+    document.getElementById('edit-item-id').value = id;
+    document.getElementById('edit-item-type').value = type;
+    
+    if (type === 'debt') {
+        const item = appState.debts.find(d => d.id === id);
+        if (item) {
+            document.getElementById('edit-title').value = item.title;
+            document.getElementById('edit-target').value = item.target;
+            document.getElementById('edit-current').value = item.paid;
+            document.getElementById('edit-current-label').textContent = 'Valor Pago até agora (R$)';
+        }
+    } else if (type === 'goal') {
+        const item = appState.savingsGoals.find(g => g.id === id);
+        if (item) {
+            document.getElementById('edit-title').value = item.title;
+            document.getElementById('edit-target').value = item.target;
+            document.getElementById('edit-current').value = item.saved;
+            document.getElementById('edit-current-label').textContent = 'Valor Guardado/Protegido (R$)';
+        }
+    }
+    
+    modal.style.display = 'flex';
+    if (window.lucide) lucide.createIcons();
+};
+
+window.closeEditModal = function() {
+    document.getElementById('edit-modal').style.display = 'none';
+};
+
+// Global hook to pay off debts
+window.addPaymentToDebt = function(debtId) {
+    const inputEl = document.getElementById(`pay-input-${debtId}`);
+    const payVal = parseFloat(inputEl.value);
+    
+    if (isNaN(payVal) || payVal <= 0) return;
+    
+    const debt = appState.debts.find(d => d.id === debtId);
+    if (debt) {
+        const newTx = {
+            id: Date.now(),
+            date: new Date().toISOString().substring(0, 10),
+            type: 'expense',
+            amount: payVal,
+            source: 'digital',
+            category: 'divida',
+            notes: `Amortização: ${debt.title}`
+        };
+        
+        debt.paid = Math.min(debt.target, debt.paid + payVal);
+        appState.transactions.push(newTx);
+        
+        saveState();
+        renderActiveTab('tab-finances');
+        inputEl.value = '';
+        alert('Pagamento registrado na reserva digital e abatido da dívida!');
+    }
+};
+
+// Global hook to assign money to savings goals (cnh / emergency / apartment)
+window.depositToSavings = function(goalId) {
+    const inputEl = document.getElementById(`save-input-${goalId}`);
+    const saveVal = parseFloat(inputEl.value);
+    
+    if (isNaN(saveVal) || saveVal <= 0) return;
+    
+    const metrics = calculateMetrics();
+    if (metrics.availableDigitalBalance < saveVal) {
+        alert(`Saldo Digital disponível insuficiente (${formatBRL(metrics.availableDigitalBalance)}). Deposite faturamento digital primeiro!`);
+        return;
+    }
+    
+    const goal = appState.savingsGoals.find(g => g.id === goalId);
+    if (goal) {
+        goal.saved = Math.min(goal.target, goal.saved + saveVal);
+        saveState();
+        renderActiveTab('tab-finances');
+        inputEl.value = '';
+        alert(`R$ ${saveVal.toFixed(2)} guardados com sucesso na meta: ${goal.title}!`);
+    }
+};
+
+// Global hook to delete transaction
+window.deleteTransaction = function(txId) {
+    const linkedItem = appState.checklist.find(item => item.txId === txId);
+    if (linkedItem) {
+        linkedItem.completed = false;
+        linkedItem.txId = null;
+    }
+    
+    appState.transactions = appState.transactions.filter(tx => tx.id !== txId);
+    saveState();
+    renderActiveTab('tab-finances');
+};
 
 // Dynamic Add / Delete Debts and Savings Targets
 window.deleteDebtItem = function(id) {
@@ -901,7 +989,6 @@ function getBlocksForDay(dayKey, hasKids) {
 
 // --- RENDER SHOPPING & GROCERY CHECKLISTS ---
 function renderChecklist(metrics) {
-    // Column 1: Room setup
     document.getElementById('checklist-total-value').textContent = formatBRL(metrics.totalChecklist);
     document.getElementById('checklist-spent-value').textContent = formatBRL(metrics.spentChecklist);
     document.getElementById('checklist-remaining-value').textContent = formatBRL(metrics.remainingChecklist);
@@ -948,11 +1035,9 @@ function renderChecklist(metrics) {
         }
     });
     
-    // Column 2: Grocery quick list
     renderGroceryListWidget();
 }
 
-// Render dynamic grocery list
 function renderGroceryListWidget() {
     const listEl = document.getElementById('grocery-items-container');
     if (!listEl) return;
@@ -1006,48 +1091,7 @@ window.clearCheckedGroceries = function() {
     renderGroceryListWidget();
 };
 
-// Global hooks for room checklist
-window.toggleChecklistItem = function(id) {
-    const item = appState.checklist.find(i => i.id === id);
-    if (item) {
-        item.completed = !item.completed;
-        
-        if (item.completed) {
-            const txId = Date.now();
-            const newTx = {
-                id: txId,
-                date: new Date().toISOString().substring(0, 10),
-                type: 'expense',
-                amount: item.price,
-                source: 'digital',
-                category: 'quarto_item',
-                notes: `Compra: ${item.text}`
-            };
-            item.txId = txId;
-            appState.transactions.push(newTx);
-        } else {
-            if (item.txId) {
-                appState.transactions = appState.transactions.filter(t => t.id !== item.txId);
-                item.txId = null;
-            }
-        }
-        
-        saveState();
-        renderActiveTab('tab-checklist');
-    }
-};
-
-window.deleteChecklistItem = function(id) {
-    const item = appState.checklist.find(i => i.id === id);
-    if (item && item.txId) {
-        appState.transactions = appState.transactions.filter(t => t.id !== item.txId);
-    }
-    appState.checklist = appState.checklist.filter(i => i.id !== id);
-    saveState();
-    renderActiveTab('tab-checklist');
-};
-
-// Backup and Restore utilities
+// PWA Data Backup and Restore
 window.exportBackup = function() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState));
     const downloadAnchor = document.createElement('a');
@@ -1108,7 +1152,7 @@ function setupEventListeners() {
         });
     }
     
-    // Dynamic Goals Creators (CNH / Apartment / Custom Goals)
+    // Dynamic Goals Creators
     const addGoalForm = document.getElementById('add-goal-form');
     if (addGoalForm) {
         addGoalForm.addEventListener('submit', (e) => {
@@ -1136,7 +1180,7 @@ function setupEventListeners() {
         });
     }
     
-    // Dynamic Debts Creators (Mercado Pago / CC / Client / Custom Debts)
+    // Dynamic Debts Creators
     const addDebtForm = document.getElementById('add-debt-form');
     if (addDebtForm) {
         addDebtForm.addEventListener('submit', (e) => {
@@ -1164,7 +1208,43 @@ function setupEventListeners() {
         });
     }
     
-    // Time projection slider/input change listener
+    // Edit Modal Form submit handler
+    const editForm = document.getElementById('edit-modal-form');
+    if (editForm) {
+        editForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-item-id').value;
+            const type = document.getElementById('edit-item-type').value;
+            const title = document.getElementById('edit-title').value;
+            const target = parseFloat(document.getElementById('edit-target').value) || 0;
+            const current = parseFloat(document.getElementById('edit-current').value) || 0;
+            
+            if (!title.trim() || target <= 0) return;
+            
+            if (type === 'debt') {
+                const item = appState.debts.find(d => d.id === id);
+                if (item) {
+                    item.title = title;
+                    item.target = target;
+                    item.paid = Math.min(target, current);
+                }
+            } else if (type === 'goal') {
+                const item = appState.savingsGoals.find(g => g.id === id);
+                if (item) {
+                    item.title = title;
+                    item.target = target;
+                    item.saved = Math.min(target, current);
+                }
+            }
+            
+            saveState();
+            closeEditModal();
+            renderActiveTab(appState.activeTab);
+            alert('Registro atualizado com sucesso!');
+        });
+    }
+    
+    // Time projection change listener
     const digitalEstimatorInput = document.getElementById('input-proj-digital');
     if (digitalEstimatorInput) {
         digitalEstimatorInput.addEventListener('change', (e) => {
