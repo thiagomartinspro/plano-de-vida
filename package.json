@@ -1,0 +1,14 @@
+{
+  "name": "foco-total",
+  "version": "1.0.0",
+  "description": "Painel de controle financeiro e rotina semanal",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "echo 'No build step required'"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
