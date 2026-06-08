@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Recomeço e Foco - Planejador de Vida</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand-section">
+                <div class="brand-icon">
+                    <i data-lucide="compass"></i>
+                </div>
+                <div class="brand-name">
+                    <h2>Foco Total</h2>
+                    <span>Fase de Transição</span>
+                </div>
+            </div>
+            
+            <ul class="nav-links">
+                <li class="nav-item active">
+                    <button data-tab="tab-dashboard">
+                        <i data-lucide="layout-dashboard"></i> Visão Geral
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button data-tab="tab-finances">
+                        <i data-lucide="wallet"></i> Finanças & Metas
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button data-tab="tab-schedule">
+                        <i data-lucide="calendar"></i> Agenda & Rotina
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button data-tab="tab-checklist">
+                        <i data-lucide="shopping-bag"></i> Montar o Quarto
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="sidebar-footer">
+                <div class="user-badge">
+                    <div class="user-avatar">
+                        <i data-lucide="user" style="color: var(--accent-primary); width: 18px;"></i>
+                    </div>
+                    <div class="user-info">
+                        <h4>Thiago</h4>
+                        <p>Plano de Sobrevivência</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Panel -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-header">
+                <div class="welcome-msg">
+                    <h1>Dia de Foco e Ação</h1>
+                    <p>Mantenha a mente firme. Cada dia na moto e no digital te aproxima da sua família e do seu espaço.</p>
+                </div>
+                
+                <div class="quick-stats">
+                    <div class="quick-stat-badge kids-alert" id="header-kids-badge" style="display: none;">
+                        <i data-lucide="users"></i> Com os Filhos
+                    </div>
+                    <div class="quick-stat-badge earnings">
+                        <i data-lucide="target"></i> Meta Moto Hoje: <strong style="margin-left: 0.25rem;" id="header-moto-target">R$ 0,00</strong>
+                    </div>
+                </div>
+            </header>
+
+            <!-- TAB 1: VISÃO GERAL (DASHBOARD) -->
+            <div id="tab-dashboard" class="tab-panel active">
+                
+                <!-- Quick Balances & Targets Row -->
+                <div class="grid-2">
+                    <!-- Saldo Moto (Daily Survival) -->
+                    <div class="glass-card metric-card success" style="border-left: 5px solid var(--accent-success);">
+                        <span class="metric-label" style="text-transform: uppercase; letter-spacing: 1px;">Saldo da Moto (Sobrevivência)</span>
+                        <div class="metric-value" id="dash-balance-moto" style="font-size: 2.5rem;">R$ 0,00</div>
+                        <span class="metric-subtext">Cobre suas contas do dia a dia (moto, quarto, comida e gasolina).</span>
+                    </div>
+                    
+                    <!-- Reserva Digital (Transition Savings) -->
+                    <div class="glass-card metric-card primary" style="border-left: 5px solid var(--accent-primary);">
+                        <span class="metric-label" style="text-transform: uppercase; letter-spacing: 1px;">Reserva do Recomeço (Digital)</span>
+                        <div class="metric-value" id="dash-balance-digital" style="font-size: 2.5rem;">R$ 0,00</div>
+                        <span class="metric-subtext">Disponível para quitar dívidas, equipar o quarto e economizar.</span>
+                    </div>
+                </div>
+
+                <!-- 💡 ADHD QUICK LOG CARD (Top Priority on Mobile) -->
+                <div class="glass-card" style="border: 1px solid var(--border-glass-light); background: hsla(220, 25%, 13%, 0.85);">
+                    <div class="glass-card-header" style="margin-bottom: 1rem;">
+                        <span class="glass-card-title" style="color: var(--accent-warning);"><i data-lucide="lightning"></i> Lançamento Rápido (Celular/Rua)</span>
+                        <span style="font-size: 0.75rem; color: var(--text-secondary);">Sem complicação: lance na hora para não esquecer!</span>
+                    </div>
+                    
+                    <form id="quick-log-form" class="form-grid">
+                        <div class="form-group">
+                            <label for="quick-type">Tipo de Registro</label>
+                            <select id="quick-type" style="background: var(--bg-main);">
+                                <option value="income" selected>Ganho (Entrada +)</option>
+                                <option value="expense">Gasto / Compra (Saída -)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="quick-amount">Valor (R$)</label>
+                            <div class="input-wrapper">
+                                <span>R$</span>
+                                <input type="number" step="0.01" id="quick-amount" placeholder="0,00" required style="background: var(--bg-main); font-size: 1.1rem; font-weight: 600;">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="quick-source">Origem do Dinheiro</label>
+                            <select id="quick-source" style="background: var(--bg-main);">
+                                <option value="moto" selected>Dinheiro da Moto (99)</option>
+                                <option value="digital">Dinheiro do Digital</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="quick-category">Categoria</label>
+                            <select id="quick-category" style="background: var(--bg-main);">
+                                <!-- Populated dynamically by JS based on income/expense -->
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label for="quick-notes">Observação / Nota</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="quick-notes" placeholder="Ex: Corrida dinâmica / Mercado / Almoço" style="padding-left: 12px; background: var(--bg-main);">
+                            </div>
+                        </div>
+
+                        <div style="grid-column: 1 / -1; text-align: right; margin-top: 0.5rem;">
+                            <button type="submit" class="btn-success" style="width: 100%; padding: 0.85rem; font-size: 1rem;"><i data-lucide="check" style="width:18px;"></i> Registrar Lançamento</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Phased Journey Tracker -->
+                <div class="glass-card">
+                    <div class="glass-card-header">
+                        <span class="glass-card-title"><i data-lucide="milestone"></i> Etapas do seu Plano de Vida</span>
+                        <span class="phase-status-label" id="dash-current-phase-title" style="color: var(--accent-warning); background: hsla(35, 90%, 50%, 0.15);">Fase 1</span>
+                    </div>
+                    <p style="margin-bottom: 1.5rem; color: var(--text-secondary); line-height: 1.4;" id="dash-current-phase-desc"></p>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <div class="goal-bar-info" style="margin-bottom: 0.5rem;">
+                            <span style="font-weight: 600;">Progresso da Etapa Atual:</span>
+                            <span id="dash-phase-bar-label" style="font-weight: 700; color: var(--accent-warning);">0%</span>
+                        </div>
+                        <div class="goal-bar-container" style="height: 12px; border-radius: 6px;">
+                            <div class="goal-bar-fill success" id="dash-phase-progress-bar" style="background: linear-gradient(to right, var(--accent-warning), var(--accent-success)); border-radius: 6px;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="phases-timeline">
+                        <div class="phase-item" id="phase-1-item">
+                            <div class="phase-badge">1</div>
+                            <div class="phase-info">
+                                <h3>Fase 1: Sobrevivência & Quitação</h3>
+                                <p>Moto 99 cobre custos diários. Receita do Digital quita a cliente urgente (R$ 3.500,00).</p>
+                            </div>
+                            <span class="phase-status-label" id="phase-1-status">Ativo</span>
+                        </div>
+                        <div class="phase-item" id="phase-2-item">
+                            <div class="phase-badge">2</div>
+                            <div class="phase-info">
+                                <h3>Fase 2: Conforto e Habilitação B (Carro)</h3>
+                                <p>Dívidas limpas. Excedente do Digital poupado para a CNH B e utensílios para os filhos.</p>
+                            </div>
+                            <span class="phase-status-label" id="phase-2-status">Bloqueado</span>
+                        </div>
+                        <div class="phase-item" id="phase-3-item">
+                            <div class="phase-badge">3</div>
+                            <div class="phase-info">
+                                <h3>Fase 3: Escala e Apartamento da Família</h3>
+                                <p>Alugar o carro, fazer a reserva de R$ 4.000,00 e alugar o apartamento para reatar com sua esposa e filha.</p>
+                            </div>
+                            <span class="phase-status-label" id="phase-3-status">Bloqueado</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lower Row Progress Bars -->
+                <div class="grid-3">
+                    <div class="glass-card">
+                        <span class="metric-label" style="font-weight:600;">Metas Mensais Moto (Sobrevivência)</span>
+                        <div class="goal-bar-container" style="margin-top: 1rem;">
+                            <div class="goal-bar-fill success" id="dash-moto-progress-bar"></div>
+                        </div>
+                        <div class="goal-bar-info">
+                            <span>Faturamento Moto</span>
+                            <span id="dash-moto-progress-label">0%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-card">
+                        <span class="metric-label" style="font-weight:600;">Amortização total de Dívidas</span>
+                        <div class="goal-bar-container" style="margin-top: 1rem;">
+                            <div class="goal-bar-fill danger" id="dash-debt-progress-bar"></div>
+                        </div>
+                        <div class="goal-bar-info">
+                            <span>Dívidas Quitadas</span>
+                            <span id="dash-debt-progress-label">0%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-card">
+                        <span class="metric-label" style="font-weight:600;">Poupança Protegida (CNH + Apê)</span>
+                        <div class="goal-bar-container" style="margin-top: 1rem;">
+                            <div class="goal-bar-fill primary" id="dash-savings-progress-bar"></div>
+                        </div>
+                        <div class="goal-bar-info">
+                            <span>Reserva Acumulada</span>
+                            <span id="dash-savings-progress-label">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Ledger History -->
+                <div class="glass-card">
+                    <div class="glass-card-header">
+                        <span class="glass-card-title"><i data-lucide="history"></i> Últimas Transações</span>
+                        <button class="btn-primary" onclick="switchTab('tab-finances')"><i data-lucide="arrow-right" style="width:16px;"></i> Ver Extrato Completo</button>
+                    </div>
+                    <div class="earnings-table-container">
+                        <table class="earnings-table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Caixa</th>
+                                    <th>Valor</th>
+                                    <th>Categoria e Observações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dash-recent-earnings-body">
+                                <!-- Populated dynamically by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: FINANCES & TARGET CALCULATOR -->
+            <div id="tab-finances" class="tab-panel">
+                <div class="grid-2">
+                    <!-- Calculator Inputs -->
+                    <div class="glass-card">
+                        <div class="glass-card-header">
+                            <span class="glass-card-title"><i data-lucide="sliders"></i> Ajustar Custos Reais</span>
+                        </div>
+                        <form id="finance-costs-form" class="form-grid">
+                            <div class="form-group">
+                                <label for="input-rent">Aluguel Quarto (Mensal)</label>
+                                <div class="input-wrapper">
+                                    <span>R$</span>
+                                    <input type="number" id="input-rent" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="input-moto-rental">Moto 99 (Semanal)</label>
+                                <div class="input-wrapper">
+                                    <span>R$</span>
+                                    <input type="number" id="input-moto-rental" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="input-gas">Gasolina (Por dia rodado)</label>
+                                <div class="input-wrapper">
+                                    <span>R$</span>
+                                    <input type="number" id="input-gas" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="input-food">Alimentação (Diária)</label>
+                                <div class="input-wrapper">
+                                    <span>R$</span>
+                                    <input type="number" id="input-food" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="input-insurance">Seguro Acidentes (Mensal)</label>
+                                <div class="input-wrapper">
+                                    <span>R$</span>
+                                    <input type="number" id="input-insurance" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="input-dates">Verba Encontros (Mensal)</label>
+                                <div class="input-wrapper">
+                                    <span>R$</span>
+                                    <input type="number" id="input-dates" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="input-gym">Academia (Mensal)</label>
+                                <div class="input-wrapper">
+                                    <span>R$</span>
+                                    <input type="number" id="input-gym" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="input-workdays">Dias Rodados / Semana</label>
+                                <select id="input-workdays">
+                                    <option value="5">5 Dias</option>
+                                    <option value="6" selected>6 Dias (Recomendado)</option>
+                                    <option value="7">7 Dias</option>
+                                </select>
+                            </div>
+                            <div style="grid-column: 1 / -1; margin-top: 1rem; text-align: right;">
+                                <button type="submit" class="btn-success"><i data-lucide="save" style="width:16px;"></i> Salvar Custos</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Calculator outputs -->
+                    <div class="glass-card">
+                        <div class="glass-card-header">
+                            <span class="glass-card-title"><i data-lucide="calculator"></i> Detalhamento do Alvo</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-glass); padding-bottom: 0.5rem;">
+                                <span style="color: var(--text-secondary);">Aluguel Quarto:</span>
+                                <strong id="calc-monthly-rent">R$ 0,00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-glass); padding-bottom: 0.5rem;">
+                                <span style="color: var(--text-secondary);">Moto 99 (Proporcional):</span>
+                                <strong id="calc-monthly-moto">R$ 0,00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-glass); padding-bottom: 0.5rem;">
+                                <span style="color: var(--text-secondary);">Gasolina Proporcional:</span>
+                                <strong id="calc-monthly-gas">R$ 0,00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-glass); padding-bottom: 0.5rem;">
+                                <span style="color: var(--text-secondary);">Alimentação Mensal:</span>
+                                <strong id="calc-monthly-food">R$ 0,00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-glass); padding-bottom: 0.5rem;">
+                                <span style="color: var(--text-secondary);">Seguro de Acidentes:</span>
+                                <strong id="calc-monthly-insurance">R$ 0,00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-glass); padding-bottom: 0.5rem;">
+                                <span style="color: var(--text-secondary);">Academia:</span>
+                                <strong id="calc-monthly-gym">R$ 0,00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-glass); padding-bottom: 0.5rem;">
+                                <span style="color: var(--text-secondary);">Verba de Encontros:</span>
+                                <strong id="calc-monthly-dates">R$ 0,00</strong>
+                            </div>
+                            
+                            <div style="display: flex; justify-content: space-between; margin-top: 1rem; padding-top: 1rem; border-top: 2px dashed var(--border-glass);">
+                                <span style="font-weight:600;">Custo Mensal Total:</span>
+                                <strong style="color: var(--accent-primary); font-size: 1.2rem;" id="calc-total-survival">R$ 0,00</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="font-weight:600; color: var(--accent-success);">Alvo Diário 99 Moto:</span>
+                                <strong style="color: var(--accent-success); font-size: 1.25rem;" id="calc-daily-target">R$ 0,00</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 1.5rem;">
+                    <!-- Debts Control Panel -->
+                    <div class="glass-card">
+                        <div class="glass-card-header">
+                            <span class="glass-card-title"><i data-lucide="alert-octagon"></i> Passivos & Dívidas (Pagar c/ Digital)</span>
+                        </div>
+                        <div class="debt-list" id="finance-debts-list">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Savings Protected Targets -->
+                    <div class="glass-card">
+                        <div class="glass-card-header">
+                            <span class="glass-card-title"><i data-lucide="shield-check"></i> Reservas Protegidas (Fases 2 e 3)</span>
+                        </div>
+                        <div class="debt-list" id="finance-savings-list">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Full Transaction History Table -->
+                <div class="glass-card" style="margin-top: 1.5rem;">
+                    <div class="glass-card-header">
+                        <span class="glass-card-title"><i data-lucide="table"></i> Extrato de Transações Histórico</span>
+                    </div>
+                    <div class="earnings-table-container" style="max-height: 400px;">
+                        <table class="earnings-table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Caixa</th>
+                                    <th>Valor</th>
+                                    <th>Categoria e Observações</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="finances-earnings-log-body">
+                                <!-- Populated dynamically by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: SCHEDULE & ROUTINE -->
+            <div id="tab-schedule" class="tab-panel">
+                <div class="week-toggle-bar">
+                    <div>
+                        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.15rem;">Alternar Tipo de Semana</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary);">Ajuste o seu cronograma dependendo se os seus filhos vêm neste final de semana.</p>
+                    </div>
+                    
+                    <div class="toggle-switch-container">
+                        <span class="toggle-label">Semana com os Filhos?</span>
+                        <label class="switch">
+                            <input type="checkbox" id="kids-week-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding: 1.5rem;">
+                    <div class="glass-card-header" style="margin-bottom: 1.25rem;">
+                        <span class="glass-card-title"><i data-lucide="clock"></i> Agenda Semanal de Foco (3 Frentes)</span>
+                        <div style="display: flex; gap: 1rem; font-size: 0.8rem; font-weight: 500;">
+                            <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width:12px; height:12px; background:hsla(145, 70%, 45%, 0.15); border-left:3px solid var(--accent-success); display:inline-block; border-radius: 2px;"></span> Moto (Curto Prazo)</span>
+                            <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width:12px; height:12px; background:hsla(205, 90%, 55%, 0.15); border-left:3px solid var(--accent-primary); display:inline-block; border-radius: 2px;"></span> Digital (Médio Prazo)</span>
+                            <span style="display: flex; align-items: center; gap: 0.25rem;"><span style="width:12px; height:12px; background:hsla(270, 75%, 60%, 0.15); border-left:3px solid var(--accent-purple); display:inline-block; border-radius: 2px;"></span> Filhos (Foco Familiar)</span>
+                        </div>
+                    </div>
+                    <div class="schedule-grid" id="schedule-grid-container">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <div class="glass-card-header">
+                        <span class="glass-card-title"><i data-lucide="info"></i> Diretrizes Práticas de Produtividade</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; font-size: 0.9rem; line-height: 1.5;">
+                        <div>
+                            <h4 style="color: var(--accent-success); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.25rem;"><i data-lucide="bike" style="width:18px;"></i> Estratégia da Moto (99)</h4>
+                            <ul style="list-style-position: inside; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.5rem;">
+                                <li><strong>Bater a meta e sair:</strong> Não fique na rua após atingir o alvo diário (evita acidentes e estresse).</li>
+                                <li><strong>Segurança em primeiro lugar:</strong> A moto é a sua ferramenta de sobrevivência atual. Evite riscos desnecessários.</li>
+                                <li><strong>Uso ativo na rua:</strong> Use o tempo rodando para prospectar visualmente empresas locais que precisam de gestão de tráfego/sites novos.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 style="color: var(--accent-primary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.25rem;"><i data-lucide="laptop" style="width:18px;"></i> Estratégia Digital (Foco)</h4>
+                            <ul style="list-style-position: inside; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.5rem;">
+                                <li><strong>Bloco Sem Distração:</strong> Mantenha o celular longe das redes enquanto trabalha nos clientes digitais e site.</li>
+                                <li><strong>Preparação do Curso:</strong> Use os blocos da tarde para gravar aulas, montar roteiros ou estruturar os webinários.</li>
+                                <li><strong>Transição Rápida:</strong> A meta é usar o dinheiro do digital para quitar passivos e tirar CNH B o quanto antes.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: SHOPPING CHECKLIST -->
+            <div id="tab-checklist" class="tab-panel">
+                <div class="grid-3">
+                    <div class="glass-card metric-card success">
+                        <span class="metric-label">Valor Já Gasto (c/ Digital)</span>
+                        <div class="metric-value" id="checklist-spent-value">R$ 0,00</div>
+                        <span class="metric-subtext">Registrado como despesa digital</span>
+                    </div>
+                    <div class="glass-card metric-card warning">
+                        <span class="metric-label">Valor Necessário Restante</span>
+                        <div class="metric-value" id="checklist-remaining-value">R$ 0,00</div>
+                        <span class="metric-subtext">Para comprar o que falta</span>
+                    </div>
+                    <div class="glass-card metric-card primary">
+                        <span class="metric-label">Custo Estimado Total</span>
+                        <div class="metric-value" id="checklist-total-value">R$ 0,00</div>
+                        <span class="metric-subtext">Todos os itens cadastrados</span>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <div class="glass-card-header">
+                        <span class="glass-card-title"><i data-lucide="plus-circle"></i> Adicionar Item à Lista</span>
+                    </div>
+                    <form id="checklist-add-form" class="form-grid">
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label for="check-text">Descrição do Item</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="check-text" placeholder="Ex: Panela de arroz / Detergente" style="padding-left: 12px;" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="check-price">Preço Estimado</label>
+                            <div class="input-wrapper">
+                                <span>R$</span>
+                                <input type="number" step="0.01" id="check-price" placeholder="Ex: 150.00" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="check-category">Categoria</label>
+                            <select id="check-category">
+                                <option value="kids">Receber os Filhos</option>
+                                <option value="room" selected>Básicos do Quarto</option>
+                                <option value="cleaning">Limpeza & Lavanderia</option>
+                                <option value="personal">Uso Pessoal & Higiene</option>
+                            </select>
+                        </div>
+                        <div style="grid-column: 1 / -1; text-align: right; margin-top: 1rem;">
+                            <button type="submit" class="btn-primary"><i data-lucide="plus" style="width:16px;"></i> Adicionar Item</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="checklist-container">
+                    <!-- Kids Section -->
+                    <div class="glass-card">
+                        <h3 class="checklist-section-title" style="color: var(--accent-purple);"><i data-lucide="heart"></i> Para Receber os Filhos (Foco)</h3>
+                        <div class="checklist-items" id="checklist-kids-list">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+                    
+                    <!-- Room Basics -->
+                    <div class="glass-card">
+                        <h3 class="checklist-section-title" style="color: var(--accent-primary);"><i data-lucide="home"></i> Estrutura Básica do Quarto</h3>
+                        <div class="checklist-items" id="checklist-room-list">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Cleaning & Laundry -->
+                    <div class="glass-card">
+                        <h3 class="checklist-section-title" style="color: var(--accent-warning);"><i data-lucide="sparkles"></i> Higiene & Limpeza Geral</h3>
+                        <div class="checklist-items" id="checklist-cleaning-list">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Personal Items -->
+                    <div class="glass-card">
+                        <h3 class="checklist-section-title" style="color: var(--accent-success);"><i data-lucide="user"></i> Itens Pessoais & Sobrevivência</h3>
+                        <div class="checklist-items" id="checklist-personal-list">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Script Loads -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="app.js"></script>
+</body>
+</html>
